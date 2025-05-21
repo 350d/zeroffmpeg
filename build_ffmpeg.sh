@@ -4,8 +4,6 @@ set -euo pipefail
 #trap 'echo "❌  error line $LINENO, status $?"' ERR
 #set -x
 
-source /etc/dockcross/env
-
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 #export LDFLAGS="-static"           # musl → полностью статик
 export LDFLAGS=""
@@ -29,7 +27,6 @@ make install
 popd
 
 # ---------- 2. FFmpeg -----------------------
-source /etc/dockcross/env
 PREFIX="$PWD/build"
 
 git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg
