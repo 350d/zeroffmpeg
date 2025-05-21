@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-#set -euo pipefail
+set -euo pipefail
+
 #trap 'echo "❌  error line $LINENO, status $?"' ERR
 #set -x
+
+source /etc/dockcross/env
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 #export LDFLAGS="-static"           # musl → полностью статик
@@ -26,6 +29,7 @@ make install
 popd
 
 # ---------- 2. FFmpeg -----------------------
+source /etc/dockcross/env
 PREFIX="$PWD/build"
 
 git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg
@@ -36,7 +40,7 @@ pushd ffmpeg
   --arch=armel --cpu=arm1176jzf-s --target-os=linux \
   --enable-cross-compile \
   --cross-prefix="${CROSS_TRIPLE}-" \
-  --cc="$CC" \
+  --cc="$CC" --ar="$AR" --ranlib="$RANLIB" \
   --extra-cflags="-I$X264_PREFIX/include $CFLAGS" \
   --extra-ldflags="-L$X264_PREFIX/lib $LDFLAGS" \
   --disable-everything \
