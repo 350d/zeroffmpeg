@@ -18,10 +18,8 @@ jobs:
             build-essential git pkg-config yasm autoconf automake libtool \
             zlib1g-dev libssl-dev libdrm-dev libv4l-dev
 
-      - name: Build FFmpeg
-        run: |
-          chmod +x build_ffmpeg.sh
-          ./build_ffmpeg.sh
+      - name: Build FFmpeg inside dockcross
+        run: ./dockcross bash -c "./build_ffmpeg.sh"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
