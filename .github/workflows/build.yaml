@@ -9,8 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Download dockcross script
-        run: docker run --rm dockcross/linux-armv6-musl > ./dockcross
+      - name: Download fresh dockcross script
+        run: |
+          rm -f dockcross          # удалить прежний
+          docker run --rm dockcross/linux-armv6-musl > dockcross
+          chmod +x dockcross
 
       - run: chmod +x ./dockcross build_ffmpeg.sh
 
