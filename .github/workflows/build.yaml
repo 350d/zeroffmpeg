@@ -1,0 +1,18 @@
+name: Build FFmpeg for Pi Zero (ARMv6)
+on: [workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker run --rm dockcross/linux-armv6 > dockcross
+      - run: chmod +x dockcross
+      - run: chmod +x build_ffmpeg.sh
+
+      - name: Build FFmpeg inside dockcross
+        run: |
+          ./dockcross ./build_ffmpeg.sh 2>&1 | tee build_log.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-log
+          path: build_log.txt
