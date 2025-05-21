@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero (ARMv6)
+name: Build FFmpeg for Pi Zero (ARMv6, static)
 
 on: [workflow_dispatch]
 
@@ -9,17 +9,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Download fresh dockcross script
-        run: |
-          rm -f dockcross          # удалить прежний
-          docker run --rm dockcross/linux-armv6-musl > dockcross
-          chmod +x dockcross
+      # 1. берём musl-toolchain и генерируем wrapper
+      - name: Pull dockcross wrapper
+        run: docker run --rm dockcross/linux-armv6-musl > dockcross
 
-      - run: chmod +x ./dockcross build_ffmpeg.sh
+      - run: chmod +x dockcross
+      - run: chmod +x build_ffmpeg.sh
 
+      # 2. собственно сборка
       - name: Build FFmpeg inside dockcross
-        run: ./dockcross ./build_ffmpeg.sh
+        run: ./dockcross bash -c "./build_ffmpeg.sh"
 
+      # 3. артефакт
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6

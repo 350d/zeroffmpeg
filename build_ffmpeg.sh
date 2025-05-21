@@ -1,42 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
-trap 'echo "❌  Error in line $LINENO, code $?"' ERR
+trap 'echo "❌  error line $LINENO, status $?"' ERR
 set -x
 
-source /etc/dockcross/env
+# ---------- 0. окружение dockcross ----------
+# wrapper уже выставил CC, CXX, CROSS_TRIPLE, sysroot и т.д.
+source /etc/dockcross/env          # безопасно: есть и в musl-образе
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-export LDFLAGS="-static"
-#export LDFLAGS=""
+export LDFLAGS="-static"           # musl → полностью статик
 
+# ---------- 1. x264 (статически) ------------
 X264_PREFIX="$PWD/x264-build"
 export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
-
-CROSS_PREFIX="${CROSS_TRIPLE}-"
 
 git clone --depth=1 https://code.videolan.org/videolan/x264.git
 pushd x264
 ./configure \
-  --host="$CROSS_TRIPLE" \
-  --enable-static \
-  --disable-opencl \
-  --prefix="$X264_PREFIX" \
-  --cross-prefix="$CROSS_PREFIX" \
-  --cc="$CC"
+  --host=arm-unknown-linux-gnueabi \
+  --enable-static        \
+  --disable-opencl       \
+  --cross-prefix="${CROSS_TRIPLE}-" \
+  --prefix="$X264_PREFIX"
 make -j"$(nproc)"
 make install
 popd
 
-############ 2. FFmpeg #########################################################
+# ---------- 2. FFmpeg -----------------------
 PREFIX="$PWD/build"
-git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+
+git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg
 pushd ffmpeg
+
 ./configure \
   --prefix="$PREFIX" \
-  --cc="$CC" \
-  --cross-prefix="$CROSS_PREFIX" \
   --arch=armel --cpu=arm1176jzf-s --target-os=linux \
   --enable-cross-compile \
+  --cross-prefix="${CROSS_TRIPLE}-" \
+  --cc="$CC" \
   --extra-cflags="-I$X264_PREFIX/include $CFLAGS" \
   --extra-ldflags="-L$X264_PREFIX/lib $LDFLAGS" \
   --disable-everything \
@@ -49,15 +50,20 @@ pushd ffmpeg
   --enable-bsf=mjpeg2jpeg \
   --enable-filter=showinfo,scale,format,colorspace \
   --enable-indev=lavfi \
-  --enable-libx264 --enable-libv4l2 --enable-libdrm \
-  --enable-openssl --enable-gpl --enable-version3 \
-  --enable-static
-  --disable-shared \
+  --enable-libx264 \
+  --enable-openssl --enable-version3 \
+  --enable-libv4l2 \
+  --enable-libdrm \
+  --enable-zlib \
+  --enable-gpl \
+  --enable-static --disable-shared \
   --pkg-config-flags="--static" \
   --disable-doc --disable-debug
+
 make -j"$(nproc)"
 make install
 popd
 
+# ---------- 3. Артефакт ---------------------
 tar -C "$PREFIX/bin" -czf "$GITHUB_WORKSPACE/ffmpeg-armv6.tar.gz" ffmpeg
 echo "✅  ffmpeg-armv6.tar.gz created"
