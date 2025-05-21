@@ -1,28 +1,22 @@
 name: Build FFmpeg for Pi Zero (ARMv6)
 
-on:
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: dockcross/linux-armv6
-
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install build deps
-        run: |
-          apt-get update
-          apt-get install -y \
-            build-essential git pkg-config yasm autoconf automake libtool \
-            zlib1g-dev libssl-dev libdrm-dev libv4l-dev
+      - name: Download dockcross script
+        run: docker run --rm dockcross/linux-armv6 > dockcross
+
+      - run: chmod +x dockcross build_ffmpeg.sh
 
       - name: Build FFmpeg inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6
           path: ffmpeg-armv6.tar.gz

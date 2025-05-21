@@ -6,8 +6,8 @@ set -x
 source /etc/dockcross/env
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-#export LDFLAGS="-static"
-export LDFLAGS=""
+export LDFLAGS="-static"
+#export LDFLAGS=""
 
 X264_PREFIX="$PWD/x264-build"
 export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
