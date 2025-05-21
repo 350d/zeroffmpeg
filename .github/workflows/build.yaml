@@ -5,13 +5,14 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Download dockcross script
-        run: docker run --rm dockcross/linux-armv6 > dockcross
+        run: docker run --rm dockcross/linux-armv6-musl > ./dockcross
 
-      - run: chmod +x dockcross build_ffmpeg.sh
+      - run: chmod +x ./dockcross build_ffmpeg.sh
 
       - name: Build FFmpeg inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
