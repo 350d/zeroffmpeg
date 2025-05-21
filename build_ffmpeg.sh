@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-trap 'echo "❌  Error in line $LINENO, code $?"' ERR
+trap 'echo "❌  Error in line $LINENO, command: $BASH_COMMAND, exit code: $?"' ERR
 set -x
+PS4='+ ${BASH_SOURCE}:${LINENO}: '
 
 source /etc/dockcross/env
 
