@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
-trap 'echo "❌  error line $LINENO, status $?"' ERR
-set -x
+#set -euo pipefail
+#trap 'echo "❌  error line $LINENO, status $?"' ERR
+#set -x
 
 # ---------- 0. окружение dockcross ----------
 # wrapper уже выставил CC, CXX, CROSS_TRIPLE, sysroot и т.д.
