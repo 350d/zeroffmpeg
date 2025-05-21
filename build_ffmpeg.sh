@@ -8,7 +8,10 @@ set -x
 source /etc/dockcross/env          # безопасно: есть и в musl-образе
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-export LDFLAGS="-static"           # musl → полностью статик
+#export LDFLAGS="-static"           # musl → полностью статик
+export LDFLAGS=""
+
+export PATH="/usr/xcc/bin:$PATH"
 
 # ---------- 1. x264 (статически) ------------
 X264_PREFIX="$PWD/x264-build"
@@ -22,7 +25,7 @@ pushd x264
   --disable-opencl       \
   --cross-prefix="${CROSS_TRIPLE}-" \
   --prefix="$X264_PREFIX"
-make -j"$(nproc)"
+make -j2
 make install
 popd
 
@@ -60,9 +63,11 @@ pushd ffmpeg
   --pkg-config-flags="--static" \
   --disable-doc --disable-debug
 
-make -j"$(nproc)"
+make -j2
 make install
 popd
+
+strip -s "$PREFIX/bin/ffmpeg"
 
 # ---------- 3. Артефакт ---------------------
 tar -C "$PREFIX/bin" -czf "$GITHUB_WORKSPACE/ffmpeg-armv6.tar.gz" ffmpeg
