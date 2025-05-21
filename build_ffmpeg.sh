@@ -17,7 +17,8 @@ git clone --depth=1 https://code.videolan.org/videolan/x264.git
 pushd x264
 ./configure \
   --host="$CROSS_TRIPLE" \
-  --enable-static --disable-opencl \
+  #--enable-static \
+  --disable-opencl \
   --prefix="$X264_PREFIX" \
   --cross-prefix="$CROSS_PREFIX" \
   --cc="$CC"
@@ -49,7 +50,8 @@ pushd ffmpeg
   --enable-indev=lavfi \
   --enable-libx264 --enable-libv4l2 --enable-libdrm \
   --enable-openssl --enable-gpl --enable-version3 \
-  --enable-static --disable-shared \
+  #--enable-static
+  --disable-shared \
   --pkg-config-flags="--static" \
   --disable-doc --disable-debug
 make -j"$(nproc)"
