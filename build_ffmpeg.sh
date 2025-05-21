@@ -1,36 +1,40 @@
 #!/usr/bin/env bash
-set -eo pipefail
-trap 'echo "❌  Error in line $LINENO, code $?"' ERR
-set -x
+set -euxo pipefail
 
-source /etc/dockcross/env   # экспортирует CROSS_PREFIX, CC, AR …
+source /etc/dockcross/env
 
+# Pi Zero
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-export LDFLAGS="-static"
+PREFIX="$PWD/root"
+mkdir -p "$PREFIX"
 
-X264_PREFIX="$PWD/x264-build"
-export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
-
-git clone --depth=1 https://code.videolan.org/videolan/x264.git
+########## x264 #############################################################
+git clone --depth 1 --branch stable https://code.videolan.org/videolan/x264.git
 pushd x264
 ./configure \
-  --host=arm-unknown-linux-gnueabi \
-  --enable-static --disable-asm --disable-opencl \
-  --prefix="$X264_PREFIX" \
-  --cross-prefix="$CROSS_PREFIX"
+  --host="$CROSS_TRIPLE" \
+  --cross-prefix="$CROSS_PREFIX" \
+  --enable-static  --disable-opencl --disable-asm \
+  --prefix="$PREFIX"
 make -j"$(nproc)"
 make install
 popd
 
-PREFIX="$PWD/build"
-git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg
+########## FFmpeg ###########################################################
+git clone --depth 1 https://github.com/ffmpeg/ffmpeg.git
 pushd ffmpeg
+PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig" \
 ./configure \
   --prefix="$PREFIX" \
   --arch=armel --cpu=arm1176jzf-s --target-os=linux \
+  --cross-prefix="$CROSS_PREFIX" \
   --enable-cross-compile \
-  --extra-cflags="-I$X264_PREFIX/include $CFLAGS" \
-  --extra-ldflags="-L$X264_PREFIX/lib $LDFLAGS" \
+  --extra-cflags="-I$PREFIX/include $CFLAGS" \
+  --extra-ldflags="-L$PREFIX/lib" \
+  --pkg-config-flags="--static" \
+  --enable-gpl --enable-version3 \
+  --enable-static --disable-shared \
+  --disable-debug --disable-doc \
   --disable-everything \
   --enable-protocol=http,https,tls,tcp,udp,file,rtp \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
@@ -41,15 +45,11 @@ pushd ffmpeg
   --enable-bsf=mjpeg2jpeg \
   --enable-filter=showinfo,scale,format,colorspace \
   --enable-indev=lavfi \
-  --enable-libx264 --enable-zlib \
-  --enable-libv4l2 --enable-libdrm \
-  --enable-openssl --enable-gpl --enable-version3 \
-  --enable-static --disable-shared \
-  --pkg-config-flags="--static" \
-  --disable-doc --disable-debug
+  --enable-libx264 --enable-libv4l2 --enable-libdrm \
+  --enable-zlib --enable-openssl
 make -j"$(nproc)"
 make install
 popd
 
-tar -C "$PREFIX/bin" -czf "$GITHUB_WORKSPACE/ffmpeg-armv6.tar.gz" ffmpeg
+tar -C "$PREFIX/bin" -czf ffmpeg-armv6.tar.gz ffmpeg
 echo "✅  ffmpeg-armv6.tar.gz created"
