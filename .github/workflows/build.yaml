@@ -16,7 +16,7 @@ jobs:
     - run: chmod +x build_ffmpeg.sh
 
     - name: Build inside dockcross
-      run: ./dockcross bash -c ". /etc/dockcross/env && ./build_ffmpeg.sh"
+      run: ./dockcross ./build_ffmpeg.sh
 
     - name: Upload artefact
       uses: actions/upload-artifact@v4

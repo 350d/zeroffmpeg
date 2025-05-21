@@ -3,10 +3,6 @@
 #trap 'echo "❌  error line $LINENO, status $?"' ERR
 #set -x
 
-# ---------- 0. окружение dockcross ----------
-# wrapper уже выставил CC, CXX, CROSS_TRIPLE, sysroot и т.д.
-source /etc/dockcross/env          # безопасно: есть и в musl-образе
-
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 #export LDFLAGS="-static"           # musl → полностью статик
 export LDFLAGS=""
