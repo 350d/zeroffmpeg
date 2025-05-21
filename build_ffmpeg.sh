@@ -11,15 +11,16 @@ export LDFLAGS="-static"
 X264_PREFIX="$PWD/x264-build"
 export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
 
-############ 1. x264 ###########################################################
+CROSS_PREFIX="${CROSS_TRIPLE}-"
+
 git clone --depth=1 https://code.videolan.org/videolan/x264.git
 pushd x264
 ./configure \
-  --host=arm-unknown-linux-gnueabi \
+  --host="$CROSS_TRIPLE" \
   --enable-static --disable-opencl \
   --prefix="$X264_PREFIX" \
-  --cross-prefix="$CROSS_COMPILE" \
-  --cc="${CROSS_COMPILE}gcc"
+  --cross-prefix="$CROSS_PREFIX" \
+  --cc="$CC"
 make -j"$(nproc)"
 make install
 popd
@@ -30,10 +31,10 @@ git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
 pushd ffmpeg
 ./configure \
   --prefix="$PREFIX" \
+  --cc="$CC" \
+  --cross-prefix="$CROSS_PREFIX" \
   --arch=armel --cpu=arm1176jzf-s --target-os=linux \
   --enable-cross-compile \
-  --cross-prefix="$CROSS_COMPILE" \
-  --cc="${CROSS_COMPILE}gcc" \
   --extra-cflags="-I$X264_PREFIX/include $CFLAGS" \
   --extra-ldflags="-L$X264_PREFIX/lib $LDFLAGS" \
   --disable-everything \
