@@ -6,7 +6,8 @@ set -x
 source /etc/dockcross/env
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-export LDFLAGS="-static"
+#export LDFLAGS="-static"
+export LDFLAGS=""
 
 X264_PREFIX="$PWD/x264-build"
 export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
@@ -17,7 +18,7 @@ git clone --depth=1 https://code.videolan.org/videolan/x264.git
 pushd x264
 ./configure \
   --host="$CROSS_TRIPLE" \
-  #--enable-static \
+  --enable-static \
   --disable-opencl \
   --prefix="$X264_PREFIX" \
   --cross-prefix="$CROSS_PREFIX" \
@@ -50,7 +51,7 @@ pushd ffmpeg
   --enable-indev=lavfi \
   --enable-libx264 --enable-libv4l2 --enable-libdrm \
   --enable-openssl --enable-gpl --enable-version3 \
-  #--enable-static
+  --enable-static
   --disable-shared \
   --pkg-config-flags="--static" \
   --disable-doc --disable-debug
