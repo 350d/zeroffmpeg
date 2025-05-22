@@ -2,15 +2,28 @@
 set -euo pipefail
 
 ###############################################################################
-# Paths
+# Paths & Toolchain
 ###############################################################################
 PREFIX="/usr/local"
 SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+TOOLCHAIN_PREFIX="armv6-unknown-linux-gnueabihf-"
+
+###############################################################################
+# Export cross compiler tools
+###############################################################################
+export CC="${TOOLCHAIN_PREFIX}gcc"
+export CXX="${TOOLCHAIN_PREFIX}g++"
+export AR="${TOOLCHAIN_PREFIX}ar"
+export LD="${TOOLCHAIN_PREFIX}ld"
+export NM="${TOOLCHAIN_PREFIX}nm"
+export STRIP="${TOOLCHAIN_PREFIX}strip"
+export RANLIB="${TOOLCHAIN_PREFIX}ranlib"
 
 ###############################################################################
 # Ensure pkg-config will look in your ARMHF sysroot
 ###############################################################################
-export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
+export PKG_CONFIG_PATH="${SYSROOT}/usr/lib/arm-linux-gnueabihf/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"
 
 ###############################################################################
 # Clone FFmpeg if needed
@@ -21,12 +34,12 @@ fi
 cd ffmpeg
 
 ###############################################################################
-# Configure
+# Configure for cross-build
 ###############################################################################
 ./configure \
   --enable-cross-compile \
-  --cross-prefix=armv6-unknown-linux-gnueabihf- \
-  --cc=armv6-unknown-linux-gnueabihf-gcc \
+  --cross-prefix="${TOOLCHAIN_PREFIX}" \
+  --cc="$CC" \
   --arch=arm --cpu=arm1176jzf-s --target-os=linux \
   --sysroot="$SYSROOT" \
   --prefix="$PREFIX" \
@@ -50,10 +63,15 @@ cd ffmpeg
   --enable-version3 \
   \
   --disable-doc \
-  --disable-debug
+  --disable-debug \
+  --disable-ffplay
 
 ###############################################################################
 # Build & Install
 ###############################################################################
-make -j$(nproc)
+make -j"$(nproc)"
 make install
+
+# Package up the result
+cd "$PREFIX"
+tar czf "../ffmpeg-armv6.tar.gz" *
