@@ -28,6 +28,7 @@ export NM="${CROSS_TRIPLE}-nm"
 export RANLIB="${CROSS_TRIPLE}-ranlib"
 export STRIP="${CROSS_TRIPLE}-strip"
 export PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+export AS="${CC} -c"
 
 # Create build directory
 mkdir -p "${WORKDIR}"
@@ -42,6 +43,7 @@ pushd "${WORKDIR}"
     --host="${CROSS_TRIPLE}" \
     --cross-prefix="${CROSS_TRIPLE}-" \
     --cc="${CC}" \
+    --as="${CC} -c" \
     --ranlib="${RANLIB}" \
     --prefix="${X264_PREFIX}" \
     --sysroot="${SYSROOT}" \
