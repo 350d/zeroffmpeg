@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.2
+name: Build FFmpeg for Pi Zero v6.3
 on: [workflow_dispatch]
 
 jobs:
@@ -10,7 +10,6 @@ jobs:
       - name: Download dockcross wrapper
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
 
-        # 1) Устанавливаем ключи Debian, включаем armhf и подключаем Bookworm
         - name: Enable armhf and add Debian Bookworm repos
           run: |
             sudo apt-get update
@@ -26,7 +25,6 @@ jobs:
 
             sudo apt-get update
 
-        # 2) Скачиваем и распаковываем ARM-hf dev-пакеты в sysroot
         - name: Fetch & unpack ARM dev packages
           env:
             SYSROOT: /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
