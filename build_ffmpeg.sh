@@ -4,14 +4,13 @@ set -euo pipefail
 ###############################################################################
 # Paths
 ###############################################################################
-PREFIX="/usr/local"
-SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+PREFIX="/usr/local"             # where 'make install' will go inside the container
+SYSROOT="${SYSROOT:-/work/sysroot}"
 
 ###############################################################################
 # Ensure pkg-config will look in your ARMHF sysroot
 ###############################################################################
 export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 
 ###############################################################################
 # Clone FFmpeg if needed
@@ -30,14 +29,8 @@ cd ffmpeg
   --cc=armv6-unknown-linux-gnueabihf-gcc \
   --arch=arm --cpu=arm1176jzf-s --target-os=linux \
   --sysroot="$SYSROOT" \
-  \
-  # tell configure where to find headers & libs inside sysroot
-  --extra-cflags="-I$SYSROOT/usr/include -I$SYSROOT/include" \
-  --extra-ldflags="-L$SYSROOT/usr/lib/arm-linux-gnueabihf -L$SYSROOT/lib/arm-linux-gnueabihf" \
-  \
   --prefix="$PREFIX" \
   \
-  # formats, protocols, filters...
   --enable-protocol=http,https,tls,tcp,udp,file,rtp \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
   --enable-parser=h264,mjpeg \
@@ -48,13 +41,11 @@ cd ffmpeg
   --enable-filter=showinfo,scale,format,colorspace \
   --enable-indev=lavfi \
   \
-  # external libs
   --enable-libx264 \
   --enable-libv4l2 \
   --enable-libdrm \
   --enable-openssl \
   --enable-zlib \
-  \
   --enable-gpl \
   --enable-version3 \
   \
@@ -64,5 +55,11 @@ cd ffmpeg
 ###############################################################################
 # Build & Install
 ###############################################################################
-make -j"$(nproc)"
+make -j$(nproc)
 make install
+
+###############################################################################
+# Package up the result
+###############################################################################
+cd "$PREFIX"
+tar czf /work/ffmpeg-armv6.tar.gz .
