@@ -10,7 +10,10 @@ jobs:
       - name: Download dockcross wrapper
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
 
-      - run: chmod +x dockcross build_ffmpeg.sh
+      - name: Enable armhf multi-arch
+        run: |
+          sudo dpkg --add-architecture armhf
+          sudo apt-get update
 
       - name: Install build dependencies in dockcross
         run: |
@@ -21,6 +24,8 @@ jobs:
           && rm -rf /var/lib/apt/lists/*"
       - name: Check for libv4l2.pc
         run: ./dockcross bash -lc "ls /usr/lib/pkgconfig/libv4l2.pc"
+      
+      - run: chmod +x dockcross build_ffmpeg.sh
       
       - name: Build inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
