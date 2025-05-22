@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+# Paths and toolchain settings
+SYSROOT=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
+
 apt-get update
 apt-get install -y --no-install-recommends \
   build-essential \
@@ -23,8 +26,7 @@ apt-get install -y --no-install-recommends \
 
 rm -rf /var/lib/apt/lists/*
 
-export PKG_CONFIG_PATH=/usr/xcc/armv6-unknown-linux-gnueabihf/\
-armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig:$PKG_CONFIG_PATH
+#export PKG_CONFIG_PATH=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig:$PKG_CONFIG_PATH
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
