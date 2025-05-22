@@ -1,20 +1,68 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x   # включаем трассировку команд
 
 PREFIX="/usr/local"
 SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
-mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-cp /usr/lib/arm-linux-gnueabihf/pkgconfig/libv4l*.pc \
-   /usr/lib/arm-linux-gnueabihf/pkgconfig/libdrm.pc \
-   /usr/lib/arm-linux-gnueabihf/pkgconfig/zlib.pc \
-   "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/"
+echo "===== DATE & WHOAMI ====="
+date
+whoami
 
-export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
-export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig:$SYSROOT/usr/lib/pkgconfig:/usr/lib/pkgconfig"
+echo "===== ENVIRONMENT VARIABLES ====="
+env
 
-echo "libv4l2 version: $(pkg-config --with-sysroot="$SYSROOT" --modversion libv4l2)"
-pkg-config --with-sysroot="$SYSROOT" --libs libv4l2
+echo "===== PATH ====="
+echo "$PATH"
+
+echo "===== PREFIX & SYSROOT ====="
+echo "PREFIX    = $PREFIX"
+echo "SYSROOT   = $SYSROOT"
+
+echo "===== PKG-CONFIG INFO ====="
+which pkg-config
+pkg-config --version
+echo "PKG_CONFIG_PATH       = ${PKG_CONFIG_PATH:-<unset>}"
+echo "PKG_CONFIG_SYSROOT_DIR= ${PKG_CONFIG_SYSROOT_DIR:-<unset>}"
+echo "pkg-config pc_path    = $(pkg-config --variable pc_path pkg-config 2>/dev/null || echo '(error)')"
+
+echo "===== LIST GLOBAL pkgconfig DIRS ====="
+for d in /usr/lib/pkgconfig /usr/share/pkgconfig /usr/lib/arm-linux-gnueabihf/pkgconfig; do
+  echo "--- $d ---"
+  ls -l "$d" || echo "(не найден)"
+done
+
+echo "===== LIST SYSROOT pkgconfig DIRS ====="
+for d in \
+  "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig" \
+  "$SYSROOT/usr/lib/pkgconfig" \
+  "$SYSROOT/usr/share/pkgconfig"; do
+  echo "--- $d ---"
+  ls -l "$d" || echo "(не найден)"
+done
+
+echo "===== PKG-CONFIG MODULES (v4l2/drm/zlib/x264) ====="
+pkg-config --list-all | grep -E "libv4l2|v4l|drm|zlib|x264" || echo "(ничего)"
+
+echo "===== PKG-CONFIG MODVERSION ====="
+pkg-config --with-sysroot="$SYSROOT" --modversion libv4l2  || true
+pkg-config --with-sysroot="$SYSROOT" --modversion libdrm    || true
+pkg-config --with-sysroot="$SYSROOT" --modversion zlib      || true
+pkg-config --with-sysroot="$SYSROOT" --modversion libx264   || true
+
+# Попробуем скопировать .pc для проверки путей
+echo "===== COPY .pc FILES FOR DEBUG ====="
+mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig.debug"
+cp /usr/lib/arm-linux-gnueabihf/pkgconfig/*.pc                     \
+   /usr/lib/pkgconfig/*.pc                                        \
+   "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig.debug" 2>&1 || true
+echo "После копирования:"
+ls -l "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig.debug" || true
+
+exit 1
+
+
+
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
