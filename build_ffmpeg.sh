@@ -1,14 +1,29 @@
 #!/usr/bin/env bash
+set -euo pipefail
+set -x
 
-#set -euo pipefail
-#trap 'echo "❌  error line $LINENO, status $?"' ERR
-#set -x
+# Debug info
+echo "=== ENVIRONMENT ==="
+env
+echo "=== PATH ==="
+echo "$PATH"
+echo "=== COMPILERS ==="
+echo "CC=$CC"
+echo "AS=$AS"
+which "$CC" || echo "[$CC not found]"
+which as   || echo "[as not found]"
+
+# Force assembler through gcc
+export AS="$CC"
+
+
+exit 1
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 #export LDFLAGS="-static"           # musl → полностью статик
 export LDFLAGS=""
 export PATH="/usr/xcc/bin:$PATH"
-export AS="$CC"
+
 
 X264_PREFIX="$PWD/x264-build"
 export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
