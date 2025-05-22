@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.9
+name: Build FFmpeg for Pi Zero v7.0
 
 on: [workflow_dispatch]
 
@@ -15,20 +15,21 @@ jobs:
           docker run --rm dockcross/linux-armv6 > ./dockcross
           chmod +x ./dockcross
 
-      - name: Enable armhf & add Debian Bookworm armhf repos only
+      - name: Enable armhf & add only Debian Bookworm armhf repos
         run: |
-          # Устанавливаем ключи Debian
+          # 1) Устанавливаем gnupg и официальный ключ Debian
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gnupg debian-archive-keyring
 
-          # Включаем архитектуру armhf
+          # 2) Подключаем архитектуру armhf
           sudo dpkg --add-architecture armhf
 
-          # Отключаем все существующие Ubuntu-/Azure-репозитории
-          sudo sed -i 's/^deb /#deb /' /etc/apt/sources.list
+          # 3) Удаляем все системные списки и Mirrorlist
+          sudo rm -f /etc/apt/apt-mirrors.txt
+          sudo rm -f /etc/apt/sources.list
           sudo rm -vf /etc/apt/sources.list.d/*.list
 
-          # Добавляем только Debian Bookworm armhf (подписано ключами из debian-archive-keyring)
+          # 4) Создаём чистый список только для Debian Bookworm armhf
           KEYRING=/usr/share/keyrings/debian-archive-keyring.gpg
           cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
           deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm         main
@@ -36,7 +37,7 @@ jobs:
           deb [arch=armhf signed-by=${KEYRING}] http://security.debian.org/debian-security bookworm-security main
           EOF
 
-          # Обновляем индексы — теперь только armhf–Bookworm
+          # 5) Обновляем индексы — теперь будут только armhf из Debian Bookworm
           sudo apt-get update
 
       - name: Fetch & unpack ARMHF dev packages
@@ -55,10 +56,10 @@ jobs:
             libpng-dev:armhf
           )
 
-          # Скачиваем deb без установки
-          sudo apt-get install --download-only -y "${PKGS[@]}"
+          # Скачиваем deb-файлы без установки
+          sudo apt-get install --yes --download-only "${PKGS[@]}"
 
-          # Распаковываем в наш sysroot
+          # Распаковываем их в sysroot
           for D in /var/cache/apt/archives/*.deb; do
             dpkg-deb -x "$D" "$SYSROOT"
           done
