@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.7
+name: Build FFmpeg for Pi Zero v6.8
 
 on:
   workflow_dispatch:
@@ -8,34 +8,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout your code
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # 2) Download dockcross wrapper
       - name: Download dockcross wrapper
         run: |
           docker run --rm dockcross/linux-armv6 > ./dockcross
           chmod +x ./dockcross
 
-      # 3) Enable armhf + import Debian Bookworm keyring + restrict Ubuntu to amd64
       - name: Enable armhf & add Debian Bookworm repos
         run: |
-          # ensure we can import official Debian keyring
+          # 1) Make sure we can import Debian’s official keyring
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            gnupg debian-archive-keyring
+          sudo apt-get install -y --no-install-recommends gnupg debian-archive-keyring
 
-          # turn on armhf
+          # 2) Turn on armhf
           sudo dpkg --add-architecture armhf
 
-          # lock all existing Ubuntu entries to amd64 only, so they won't
-          # try to fetch armhf Packages (and 404)
-          sudo sed -i -E \
-            's|^deb (https?://[^ ]+ubuntu[^ ]* )|deb [arch=amd64] \1|' \
-            /etc/apt/sources.list
+          # 3) Lock every Ubuntu repo (in sources.list + sources.list.d) to amd64
+          sudo find /etc/apt -type f -name '*.list' -exec sed -i -E \
+            's|^deb (https?://[^ ]*ubuntu[^ ]*)|deb [arch=amd64] \1|' {} +
 
-          # now add official Debian 12 (“Bookworm”) armhf repos, using
-          # the installed keyring for signature verification
+          # 4) Add Debian Bookworm armhf repos, using the installed keyring for signed-by
           KEYRING=/usr/share/keyrings/debian-archive-keyring.gpg
           cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
           deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm          main
@@ -43,18 +37,14 @@ jobs:
           deb [arch=armhf signed-by=${KEYRING}] http://security.debian.org/debian-security bookworm-security main
           EOF
 
-          # final update now only pulls:
-          # - amd64 Packages from Ubuntu (“noble”)
-          # - armhf Packages from Debian (“bookworm”)
+          # 5) Final refresh: only ubuntu→amd64 + bookworm→armhf will be fetched
           sudo apt-get update
 
-      # 4) Download & unpack all the ARMHF -dev packages into ./sysroot
       - name: Fetch & unpack ARMHF dev packages
         run: |
           SYSROOT=$PWD/sysroot
           mkdir -p "$SYSROOT"
 
-          # list of the -dev packages we need
           PKGS=(
             libc6-dev:armhf
             zlib1g-dev:armhf
@@ -66,29 +56,26 @@ jobs:
             libpng-dev:armhf
           )
 
-          # download them (to /var/cache/apt/archives)
+          # download them (no install)
           sudo apt-get install --download-only -y "${PKGS[@]}"
 
-          # extract each into our sysroot
-          for DEB in /var/cache/apt/archives/*.deb; do
-            dpkg-deb -x "$DEB" "$SYSROOT"
+          # unpack into our sysroot
+          for D in /var/cache/apt/archives/*.deb; do
+            dpkg-deb -x "$D" "$SYSROOT"
           done
 
-      # 5) Make your build script executable
       - name: Prep build script
         run: chmod +x build_ffmpeg.sh
 
-      # 6) Cross-compile inside dockcross
       - name: Build inside dockcross
         run: |
-          # dockcross mounts your repo at /work
           ./dockcross bash -lc "\
             export SYSROOT=/work/sysroot && \
             ./build_ffmpeg.sh\
           "
 
-      # 7) Upload the resulting tarball
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6
           path: ffmpeg-armv6.tar.gz
