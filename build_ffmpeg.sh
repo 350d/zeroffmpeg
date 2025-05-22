@@ -70,7 +70,6 @@ pushd "${WORKDIR}/ffmpeg"
     --enable-cross-compile \
     --cross-prefix="${CROSS_TRIPLE}-" \
     --cc="${CC}" \
-    --host="${CROSS_TRIPLE}" \
     --arch=arm \
     --cpu=arm1176jzf-s \
     --target-os=linux \

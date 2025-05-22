@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v5.7
+name: Build FFmpeg for Pi Zero v5.8
 on: [workflow_dispatch]
 
 jobs:
@@ -7,7 +7,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache dockcross wrapper
+        uses: actions/cache@v3
+        with:
+          path: ./dockcross
+          key: ${{ runner.os }}-dockcross-v1
+          restore-keys: |
+            ${{ runner.os }}-dockcross-
       - name: Download dockcross wrapper
+        if: steps.cache.outputs.cache-hit != 'true'
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
 
       - run: chmod +x dockcross build_ffmpeg.sh
