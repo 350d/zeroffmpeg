@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PREFIX="/usr/local"
 SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
-export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
-export PKG_CONFIG_LIBDIR="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig:$SYSROOT/usr/share/pkgconfig"
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
 fi
 pushd ffmpeg
-PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig" \
+
+export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig:$SYSROOT/usr/lib/pkgconfig:/usr/lib/pkgconfig"
+
 ./configure \
   --enable-cross-compile \
   --cross-prefix=armv6-unknown-linux-gnueabihf- \
   --cc=armv6-unknown-linux-gnueabihf-gcc \
   --arch=arm --cpu=arm1176jzf-s --target-os=linux \
   --sysroot="$SYSROOT" \
+  --prefix="$PREFIX" \
   --enable-protocol=http,https,tls,tcp,udp,file,rtp \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
   --enable-parser=h264,mjpeg \
@@ -32,8 +35,9 @@ PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig" \
   --enable-libdrm \
   --enable-zlib \
   --enable-gpl \
-  --disable-doc --disable-debug \
-  --prefix=/usr/local
-make -j$(nproc)
+  --disable-doc --disable-debug
+
+make -j"$(nproc)"
 make install
+
 popd
