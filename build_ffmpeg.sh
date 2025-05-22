@@ -42,6 +42,11 @@ echo "PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
 echo "Проверка libv4l2.pc:"
 pkg-config --modversion libv4l2 && echo "OK" || echo "FAIL"
 
+if [ ! -d ffmpeg ]; then
+  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
+fi
+pushd ffmpeg
+
 ./configure \
   --enable-cross-compile \
   --cross-prefix=armv6-unknown-linux-gnueabihf- \
