@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.4
+name: Build FFmpeg for Pi Zero v6.5
 
 on:
   workflow_dispatch:
@@ -8,27 +8,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Check out your repo
+      # 1) Checkout
       - uses: actions/checkout@v3
 
-      # 2) Download the dockcross wrapper
+      # 2) Download dockcross wrapper
       - name: Download dockcross wrapper
         run: |
           docker run --rm dockcross/linux-armv6 > ./dockcross
-      - name: Make dockcross executable
-        run: chmod +x ./dockcross
+          chmod +x ./dockcross
 
-      # 3) Enable armhf + Bookworm repos on the host
+      # 3) Enable armhf + import Debian Bookworm archive key, then add Bookworm repos
       - name: Enable armhf & Debian Bookworm repos
         run: |
           sudo apt-get update
-          sudo apt-get install -y debian-archive-keyring
+          sudo apt-get install -y --no-install-recommends gnupg wget
+
+          # import Debian 12 ("Bookworm") archive key
+          wget -O- https://ftp-master.debian.org/keys/archive-key-12.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/debian-archive-bookworm.gpg
+
           sudo dpkg --add-architecture armhf
+
+          # point to Bookworm using our new keyring
           cat <<EOF | sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list
-          deb [arch=armhf] http://deb.debian.org/debian bookworm main
-          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
-          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
+          deb [arch=armhf signed-by=/usr/share/keyrings/debian-archive-bookworm.gpg] http://deb.debian.org/debian bookworm main
+          deb [arch=armhf signed-by=/usr/share/keyrings/debian-archive-bookworm.gpg] http://deb.debian.org/debian bookworm-updates main
+          deb [arch=armhf signed-by=/usr/share/keyrings/debian-archive-bookworm.gpg] http://security.debian.org/debian-security bookworm-security main
           EOF
+
           sudo apt-get update
 
       # 4) Download & unpack all the ARMHF -dev packages into ./sysroot
