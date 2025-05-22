@@ -1,103 +1,71 @@
 #!/usr/bin/env bash
-set -euo pipefail
-set -x
+set -euxo pipefail
 
-# Debug information
-echo "=== ENVIRONMENT ==="
-env
-echo "=== PATH ==="
-echo "$PATH"
-echo "=== COMPILERS ==="
-echo "CC=$CC"
-echo "AS=$AS"
-which "$CC" || echo "[$CC not found]"
-which as   || echo "[as not found]"
+apt-get update
+apt-get install -y --no-install-recommends \
+  build-essential \
+  git \
+  pkg-config \
+  yasm \
+  libssl-dev           # --enable-openssl, --enable-version3, https/tls
+  zlib1g-dev           # --enable-zlib
+  libv4l-dev           # --enable-libv4l2
+  libdrm-dev           # --enable-libdrm
+  libjpeg-dev          # mjpeg encoder/decoder, image2 demuxer
+  libpng-dev           # image2 support (PNG input/output)
+  libx264-dev          # libx264 (хотя вы можете собрать x264 вручную)
+  libavcodec-dev       # базовые кодеки (h264, mjpeg парсеры/декодеры)
+  libavformat-dev      # контейнеры (mp4, rtp/rtsp демультиплексор)
+  libavfilter-dev      # фильтры (scale, format, colorspace, showinfo через lavfi)
+  libavutil-dev        # вспомогательные утилиты
+  libswscale-dev       # масштабирование (scale)
+  libswresample-dev    # ресэмплинг (если появится аудио)
 
-# Default variables (override by exporting before execution)
-: "${CROSS_TRIPLE:=armv6-unknown-linux-gnueabihf}"
-: "${SYSROOT:=${QEMU_LD_PREFIX:-/usr/${CROSS_TRIPLE}}}"
-: "${X264_PREFIX:=/usr/local}"
-: "${WORKDIR:=$(pwd)/build}"
+rm -rf /var/lib/apt/lists/*
 
-# Export cross-toolchain binaries
-export CC="${CROSS_TRIPLE}-gcc"
-export CXX="${CROSS_TRIPLE}-g++"
-export AR="${CROSS_TRIPLE}-ar"
-export LD="${CROSS_TRIPLE}-ld"
-export NM="${CROSS_TRIPLE}-nm"
-export RANLIB="${CROSS_TRIPLE}-ranlib"
-export STRIP="${CROSS_TRIPLE}-strip"
-export PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-export AS="${CC} -c"
+export PKG_CONFIG_PATH=/usr/xcc/armv6-unknown-linux-gnueabihf/\
+armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig:$PKG_CONFIG_PATH
 
-# Create build directory
-mkdir -p "${WORKDIR}"
+mkdir -p /work/build
 
-# Build x264 dependency
-pushd "${WORKDIR}"
-  if [ ! -d "x264" ]; then
-    git clone --depth 1 https://code.videolan.org/videolan/x264.git
-  fi
-  cd x264
-  ./configure \
-    --host="${CROSS_TRIPLE}" \
-    --cross-prefix="${CROSS_TRIPLE}-" \
-    --cc="${CC}" \
-    --as="${CC} -c" \
-    --ranlib="${RANLIB}" \
-    --prefix="${X264_PREFIX}" \
-    --sysroot="${SYSROOT}" \
-    --enable-static \
-    --disable-cli \
-    --enable-pic \
-    --disable-opencl \
-    --extra-cflags="-I${SYSROOT}/usr/include" \
-    --extra-ldflags="-L${SYSROOT}/usr/lib"
-  make -j"$(nproc)"
-  make install
-popd
-
-# Clone FFmpeg source
-pushd "${WORKDIR}"
-  if [ ! -d "ffmpeg" ]; then
-    git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
-  fi
-popd
-
-# Configure and build FFmpeg
-pushd "${WORKDIR}/ffmpeg"
-  ./configure \
-    --enable-cross-compile \
-    --cross-prefix="${CROSS_TRIPLE}-" \
-    --cc="${CC}" \
-    --arch=arm \
-    --cpu=arm1176jzf-s \
-    --target-os=linux \
-    --sysroot="${SYSROOT}" \
-    --extra-cflags="-I${SYSROOT}/usr/include -I${X264_PREFIX}/include" \
-    --extra-ldflags="-L${SYSROOT}/usr/lib -L${X264_PREFIX}/lib" \
-    --enable-static \
-    --disable-shared \
-    --disable-everything \
-    --enable-protocol=http,https,tls,tcp,udp,file,rtp \
-    --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
-    --enable-parser=h264,mjpeg \
-    --enable-decoder=h264,mjpeg \
-    --enable-encoder=mjpeg,libx264 \
-    --enable-muxer=mjpeg,mp4,image2,null \
-    --enable-bsf=mjpeg2jpeg \
-    --enable-filter=showinfo,scale,format,colorspace \
-    --enable-indev=lavfi \
-    --enable-libx264 \
-    --enable-openssl \
-    --enable-version3 \
-    --enable-libv4l2 \
-    --enable-libdrm \
-    --enable-zlib \
-    --enable-gpl \
-    --disable-doc \
-    --disable-debug \
-    --prefix="${X264_PREFIX}"
-  make -j"$(nproc)"
-  make install
-popd
+if [ ! -d ffmpeg ]; then
+  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
+fi
+cd ffmpeg
+./configure \
+  --enable-cross-compile \
+  --cross-prefix=armv6-unknown-linux-gnueabihf- \
+  --cc=armv6-unknown-linux-gnueabihf-gcc \
+  --arch=arm \
+  --cpu=arm1176jzf-s \
+  --target-os=linux \
+  --sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/\
+armv6-unknown-linux-gnueabihf/sysroot \
+  --extra-cflags="-I/usr/xcc/armv6-unknown-linux-gnueabihf/\
+armv6-unknown-linux-gnueabihf/sysroot/usr/include -I/usr/local/include" \
+  --extra-ldflags="-L/usr/xcc/armv6-unknown-linux-gnueabihf/\
+armv6-unknown-linux-gnueabihf/sysroot/usr/lib -L/usr/local/lib" \
+  --enable-static \
+  --disable-shared \
+  --disable-everything \
+  --enable-protocol=http,https,tls,tcp,udp,file,rtp \
+  --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
+  --enable-parser=h264,mjpeg \
+  --enable-decoder=h264,mjpeg \
+  --enable-encoder=mjpeg,libx264 \
+  --enable-muxer=mjpeg,mp4,image2,null \
+  --enable-bsf=mjpeg2jpeg \
+  --enable-filter=showinfo,scale,format,colorspace \
+  --enable-indev=lavfi \
+  --enable-libx264 \
+  --enable-openssl \
+  --enable-version3 \
+  --enable-libv4l2 \
+  --enable-libdrm \
+  --enable-zlib \
+  --enable-gpl \
+  --disable-doc \
+  --disable-debug \
+  --prefix=/usr/local
+make -j$(nproc)
+make install
