@@ -1,7 +1,6 @@
-name: Build FFmpeg for Pi Zero v6.8
+name: Build FFmpeg for Pi Zero v6.9
 
-on:
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 jobs:
   build:
@@ -16,28 +15,28 @@ jobs:
           docker run --rm dockcross/linux-armv6 > ./dockcross
           chmod +x ./dockcross
 
-      - name: Enable armhf & add Debian Bookworm repos
+      - name: Enable armhf & add Debian Bookworm armhf repos only
         run: |
-          # 1) Make sure we can import Debian’s official keyring
+          # Устанавливаем ключи Debian
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gnupg debian-archive-keyring
 
-          # 2) Turn on armhf
+          # Включаем архитектуру armhf
           sudo dpkg --add-architecture armhf
 
-          # 3) Lock every Ubuntu repo (in sources.list + sources.list.d) to amd64
-          sudo find /etc/apt -type f -name '*.list' -exec sed -i -E \
-            's|^deb (https?://[^ ]*ubuntu[^ ]*)|deb [arch=amd64] \1|' {} +
+          # Отключаем все существующие Ubuntu-/Azure-репозитории
+          sudo sed -i 's/^deb /#deb /' /etc/apt/sources.list
+          sudo rm -vf /etc/apt/sources.list.d/*.list
 
-          # 4) Add Debian Bookworm armhf repos, using the installed keyring for signed-by
+          # Добавляем только Debian Bookworm armhf (подписано ключами из debian-archive-keyring)
           KEYRING=/usr/share/keyrings/debian-archive-keyring.gpg
           cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
-          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm          main
-          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm-updates  main
+          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm         main
+          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm-updates main
           deb [arch=armhf signed-by=${KEYRING}] http://security.debian.org/debian-security bookworm-security main
           EOF
 
-          # 5) Final refresh: only ubuntu→amd64 + bookworm→armhf will be fetched
+          # Обновляем индексы — теперь только armhf–Bookworm
           sudo apt-get update
 
       - name: Fetch & unpack ARMHF dev packages
@@ -56,10 +55,10 @@ jobs:
             libpng-dev:armhf
           )
 
-          # download them (no install)
+          # Скачиваем deb без установки
           sudo apt-get install --download-only -y "${PKGS[@]}"
 
-          # unpack into our sysroot
+          # Распаковываем в наш sysroot
           for D in /var/cache/apt/archives/*.deb; do
             dpkg-deb -x "$D" "$SYSROOT"
           done
