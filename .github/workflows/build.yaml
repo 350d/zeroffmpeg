@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.5
+name: Build FFmpeg for Pi Zero v6.6
 
 on:
   workflow_dispatch:
