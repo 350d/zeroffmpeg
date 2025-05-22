@@ -10,41 +10,43 @@ jobs:
       - name: Download dockcross wrapper
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
 
-        - name: Enable armhf and add Debian Bookworm repos
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y debian-archive-keyring
+      - name: Enable armhf and add Debian Bookworm repos
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debian-archive-keyring
 
-            sudo dpkg --add-architecture armhf
+          sudo dpkg --add-architecture armhf
 
-            cat <<EOF | sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list
-        deb [arch=armhf] http://deb.debian.org/debian bookworm main
-        deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
-        deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
-        EOF
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list
+          deb [arch=armhf] http://deb.debian.org/debian bookworm main
+          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
+          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
+          EOF
 
-            sudo apt-get update
+          sudo apt-get update
 
-        - name: Fetch & unpack ARM dev packages
-          env:
-            SYSROOT: /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
-          run: |
-            mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-            PKGS="libv4l-dev:armhf libdrm-dev:armhf zlib1g-dev:armhf libssl-dev:armhf libx264-dev:armhf libjpeg-dev:armhf libpng-dev:armhf"
-            apt-get download $PKGS
-            for D in *.deb; do
-              TMP=$(mktemp -d)
-              dpkg-deb -x "$D" "$TMP"
-              cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig/"*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" 2>/dev/null || true
-              rm -rf "$TMP"
-            done
+      - name: Fetch & unpack ARM dev packages
+        env:
+          SYSROOT: /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
+        run: |
+          mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
+          PKGS="libv4l-dev:armhf libdrm-dev:armhf zlib1g-dev:armhf libssl-dev:armhf libx264-dev:armhf libjpeg-dev:armhf libpng-dev:armhf"
+          apt-get download $PKGS
+          for D in *.deb; do
+            TMP=$(mktemp -d)
+            dpkg-deb -x "$D" "$TMP"
+            cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig/"*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" 2>/dev/null || true
+            rm -rf "$TMP"
+          done
 
-      - run: chmod +x dockcross build_ffmpeg.sh
+      - name: Make scripts executable
+        run: chmod +x dockcross build_ffmpeg.sh
 
       - name: Build inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload FFmpeg artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6
           path: ffmpeg-armv6.tar.gz
