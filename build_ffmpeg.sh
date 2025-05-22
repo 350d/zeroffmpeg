@@ -2,7 +2,7 @@
 set -euo pipefail
 set -x
 
-# Debug info
+# Debug information
 echo "=== ENVIRONMENT ==="
 env
 echo "=== PATH ==="
@@ -16,43 +16,49 @@ which as   || echo "[as not found]"
 # Force assembler through gcc
 export AS="$CC"
 
+# Default variables (override by exporting before execution)
+: "${CROSS_TRIPLE:=arm-unknown-linux-gnueabihf}"
+: "${SYSROOT:=/usr/${CROSS_TRIPLE}}"
+: "${X264_PREFIX:=/usr/local}"
+: "${WORKDIR:=$(pwd)/build}"  # Build directory
+mkdir -p "$WORKDIR"
 
-exit 1
-
-export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-#export LDFLAGS="-static"           # musl → полностью статик
-export LDFLAGS=""
-export PATH="/usr/xcc/bin:$PATH"
-
-
-X264_PREFIX="$PWD/x264-build"
-export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
-
-git clone --depth=1 https://code.videolan.org/videolan/x264.git
-pushd x264
+# Build x264 for FFmpeg dependency
+pushd "$WORKDIR"
+if [ ! -d "x264" ]; then
+  git clone --depth 1 https://code.videolan.org/videolan/x264.git
+fi
+cd x264
+PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig"
 ./configure \
-  --host=arm-unknown-linux-gnueabi \
-  --enable-static        \
-  --disable-opencl       \
+  --host="${CROSS_TRIPLE}" \
   --cross-prefix="${CROSS_TRIPLE}-" \
-  --prefix="$X264_PREFIX"
-make -j2
+  --prefix="${X264_PREFIX}" \
+  --sysroot="${SYSROOT}" \
+  --enable-static \
+  --disable-opencl \
+  --enable-pic \
+  --disable-cli \
+  --extra-cflags="-I${SYSROOT}/usr/include" \
+  --extra-ldflags="-L${SYSROOT}/usr/lib"
+make -j"$(nproc)"
 make install
 popd
+export PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig"
 
-PREFIX="$PWD/build"
-
-git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg
-pushd ffmpeg
-
+# Configure FFmpeg for cross-compilation
 ./configure \
-  --prefix="$PREFIX" \
-  --arch=armel --cpu=arm1176jzf-s --target-os=linux \
   --enable-cross-compile \
   --cross-prefix="${CROSS_TRIPLE}-" \
-  --cc="$CC" --ar="$AR" --ranlib="$RANLIB" \
-  --extra-cflags="-I$X264_PREFIX/include $CFLAGS" \
-  --extra-ldflags="-L$X264_PREFIX/lib $LDFLAGS" \
+  --host="${CROSS_TRIPLE}" \
+  --arch=arm \
+  --cpu=arm1176jzf-s \
+  --target-os=linux \
+  --sysroot="${SYSROOT}" \
+  --extra-cflags="-I${SYSROOT}/usr/include -I${X264_PREFIX}/include" \
+  --extra-ldflags="-L${SYSROOT}/usr/lib -L${X264_PREFIX}/lib" \
+  --enable-static \
+  --disable-shared \
   --disable-everything \
   --enable-protocol=http,https,tls,tcp,udp,file,rtp \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
@@ -69,16 +75,9 @@ pushd ffmpeg
   --enable-libdrm \
   --enable-zlib \
   --enable-gpl \
-  --enable-static --disable-shared \
-  --pkg-config-flags="--static" \
-  --disable-doc --disable-debug
+  --disable-doc --disable-debug \
+  --prefix="${X264_PREFIX}"
 
-make -j2
+# Build and install FFmpeg
+make -j"$(nproc)"
 make install
-popd
-
-strip -s "$PREFIX/bin/ffmpeg"
-
-# ---------- 3. Артефакт ---------------------
-tar -C "$PREFIX/bin" -czf "$GITHUB_WORKSPACE/ffmpeg-armv6.tar.gz" ffmpeg
-echo "✅  ffmpeg-armv6.tar.gz created"
