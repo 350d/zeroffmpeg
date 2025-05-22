@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero (ARMv6 glibc)
+name: Build FFmpeg for Pi Zero (ARMv6)
 on: [workflow_dispatch]
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
 
       - name: Install binutils
         run: |
-          ./dockcross bash -e <<‘EOF’
+          ./dockcross bash -e <<EOF
           apt-get update
           apt-get install -y binutils-arm-linux-gnueabihf
           ./build_ffmpeg.sh
