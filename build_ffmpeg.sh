@@ -1,31 +1,32 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-apt-get update
-apt-get install -y --no-install-recommends \
-  build-essential \
-  git \
-  pkg-config \
-  yasm \
-  libssl-dev         \
-  zlib1g-dev         \
-  libv4l-dev         \
-  libdrm-dev         \
-  libjpeg-dev        \
-  libpng-dev         \
-  libx264-dev        \
-  libavcodec-dev     \
-  libavformat-dev    \
-  libavfilter-dev    \
-  libavutil-dev      \
-  libswscale-dev     \
-  libswresample-dev
 
-rm -rf /var/lib/apt/lists/*
+#apt-get update
+#apt-get install -y --no-install-recommends \
+#  build-essential \
+#  git \
+#  pkg-config \
+#  yasm \
+#  libssl-dev         \
+#  zlib1g-dev         \
+#  libv4l-dev         \
+#  libdrm-dev         \
+#  libjpeg-dev        \
+#  libpng-dev         \
+#  libx264-dev        \
+#  libavcodec-dev     \
+#  libavformat-dev    \
+#  libavfilter-dev    \
+#  libavutil-dev      \
+#  libswscale-dev     \
+#  libswresample-dev
 
-# Paths and toolchain settings
+#rm -rf /var/lib/apt/lists/*
+
 SYSROOT=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
-export PKG_CONFIG_PATH="$SYSROOT/usr/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig"
+export PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
