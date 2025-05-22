@@ -26,9 +26,6 @@ rm -rf /var/lib/apt/lists/*
 export PKG_CONFIG_PATH=/usr/xcc/armv6-unknown-linux-gnueabihf/\
 armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig:$PKG_CONFIG_PATH
 
-mkdir -p /work
-cd work
-
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
 fi
