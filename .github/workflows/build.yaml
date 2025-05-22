@@ -13,14 +13,18 @@ jobs:
       - name: Enable armhf and add Debian Bookworm repos
         run: |
           sudo apt-get update
-          sudo apt-get install -y debian-archive-keyring
+          sudo apt-get install -y --no-install-recommends \
+            debian-archive-keyring gnupg
+
+          sudo cp /usr/share/keyrings/debian-archive-keyring.gpg \
+            /usr/share/keyrings/debian-bookworm-archive-keyring.gpg
 
           sudo dpkg --add-architecture armhf
 
-          cat <<EOF | sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list
-          deb [arch=armhf] http://deb.debian.org/debian bookworm main
-          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
-          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
+          sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list <<'EOF'
+          deb [arch=armhf signed-by=/usr/share/keyrings/debian-bookworm-archive-keyring.gpg] http://deb.debian.org/debian bookworm main
+          deb [arch=armhf signed-by=/usr/share/keyrings/debian-bookworm-archive-keyring.gpg] http://deb.debian.org/debian bookworm-updates main
+          deb [arch=armhf signed-by=/usr/share/keyrings/debian-bookworm-archive-keyring.gpg] http://security.debian.org/debian-security bookworm-security main
           EOF
 
           sudo apt-get update
