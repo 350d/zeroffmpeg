@@ -1,17 +1,24 @@
 name: Build FFmpeg for Pi Zero v6.4
-on: [workflow_dispatch]
+
+on:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Check out your repo
       - uses: actions/checkout@v3
 
+      # 2) Download the dockcross wrapper
       - name: Download dockcross wrapper
-        run: docker run --rm dockcross/linux-armv6 > ./dockcross
-      - run: chmod +x ./dockcross
+        run: |
+          docker run --rm dockcross/linux-armv6 > ./dockcross
+      - name: Make dockcross executable
+        run: chmod +x ./dockcross
 
+      # 3) Enable armhf + Bookworm repos on the host
       - name: Enable armhf & Debian Bookworm repos
         run: |
           sudo apt-get update
@@ -24,6 +31,7 @@ jobs:
           EOF
           sudo apt-get update
 
+      # 4) Download & unpack all the ARMHF -dev packages into ./sysroot
       - name: Fetch & unpack ARMHF dev packages
         run: |
           SYSROOT="$PWD/sysroot"
@@ -38,22 +46,21 @@ jobs:
             libjpeg-dev:armhf
             libpng-dev:armhf
           )
-          # Download armhf .debs
           sudo apt-get install --download-only -y "${PKGS[@]}"
-          # Extract them all into the sysroot
           for DEB in /var/cache/apt/archives/*.deb; do
             dpkg-deb -x "$DEB" "$SYSROOT"
           done
 
+      # 5) Make your build script executable
       - name: Prep build script
         run: chmod +x build_ffmpeg.sh
 
+      # 6) Cross‐compile inside dockcross
       - name: Build inside dockcross
-        run: ./dockcross bash -lc "\
-          export SYSROOT=/work/sysroot && \
-          ./build_ffmpeg.sh \
-        "
+        run: |
+          ./dockcross bash -lc "export SYSROOT=/work/sysroot && ./build_ffmpeg.sh"
 
+      # 7) Upload the resulting tarball
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6
