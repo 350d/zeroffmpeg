@@ -4,6 +4,12 @@ set -euo pipefail
 PREFIX="/usr/local"
 SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
+echo "===== DATE & WHOAMI ====="
+date
+whoami
+echo
+
+echo "===== APT: УСТАНОВКА ДЕПЕНДОВ ====="
 apt-get update
 apt-get install -y --no-install-recommends \
     pkg-config build-essential yasm \
@@ -12,15 +18,29 @@ apt-get install -y --no-install-recommends \
     libavcodec-dev libavformat-dev libavfilter-dev libavutil-dev \
     libswscale-dev libswresample-dev \
   && rm -rf /var/lib/apt/lists/*
+echo "dep-packages installed"
+echo
 
+echo "===== ENVIRONMENT ====="
+echo "PREFIX   = $PREFIX"
+echo "SYSROOT  = $SYSROOT"
+echo "PATH     = $PATH"
+echo "PKG_CONFIG_PATH (before) = ${PKG_CONFIG_PATH:-<unset>}"
+echo
 
-if [ ! -d ffmpeg ]; then
-  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
-fi
-pushd ffmpeg
+# убедимся, что .pc-файлы лежат именно здесь:
+echo "===== pkg-config SEARCH DIRS ====="
+for d in /usr/lib/pkgconfig /usr/share/pkgconfig /usr/lib/arm-linux-gnueabihf/pkgconfig; do
+  echo "--- $d ---"
+  ls -1 "$d"/*.pc 2>/dev/null || echo "(нет)"
+done
+echo
 
-export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
-export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig:$SYSROOT/usr/lib/pkgconfig:/usr/lib/pkgconfig"
+# выставляем так, чтобы pkg-config видел arm-мультиарх:
+export PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
+echo "PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
+echo "Проверка libv4l2.pc:"
+pkg-config --modversion libv4l2 && echo "OK" || echo "FAIL"
 
 ./configure \
   --enable-cross-compile \
