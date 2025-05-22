@@ -14,42 +14,6 @@ export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 
 ###############################################################################
-# Download and unpack ARMHF dev packages (including libc) into sysroot
-###############################################################################
-# List of packages to extract
-PKGS=( 
-  libc6-dev:armhf 
-  libv4l-dev:armhf 
-  libdrm-dev:armhf 
-  zlib1g-dev:armhf 
-  libssl-dev:armhf 
-  libx264-dev:armhf 
-  libjpeg-dev:armhf 
-  libpng-dev:armhf 
-)
-
-# Download .deb files
-apt-get update
-apt-get download "${PKGS[@]}"
-
-# Unpack headers, libs and .pc files into sysroot
-mkdir -p "$SYSROOT/usr/include" \
-         "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig" \
-         "$SYSROOT/usr/lib/arm-linux-gnueabihf"
-for DEB in *.deb; do
-  TMP=$(mktemp -d)
-  dpkg-deb -x "$DEB" "$TMP"
-  # copy include files
-  cp -r "$TMP/usr/include"/* "$SYSROOT/usr/include/" || true
-  # copy libraries
-  cp -r "$TMP/usr/lib/arm-linux-gnueabihf"/* "$SYSROOT/usr/lib/arm-linux-gnueabihf/" || true
-  # copy pkg-config metadata
-  cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig"/*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" 2>/dev/null || true
-  rm -rf "$TMP"
-done
-rm -f *.deb
-
-###############################################################################
 # Clone FFmpeg if needed
 ###############################################################################
 if [ ! -d ffmpeg ]; then
@@ -64,16 +28,16 @@ cd ffmpeg
   --enable-cross-compile \
   --cross-prefix=armv6-unknown-linux-gnueabihf- \
   --cc=armv6-unknown-linux-gnueabihf-gcc \
-  --ar=armv6-unknown-linux-gnueabihf-ar \
-  --as=armv6-unknown-linux-gnueabihf-as \
-  --ld=armv6-unknown-linux-gnueabihf-ld \
-  --nm=armv6-unknown-linux-gnueabihf-nm \
-  --objdump=armv6-unknown-linux-gnueabihf-objdump \
-  --strip=armv6-unknown-linux-gnueabihf-strip \
   --arch=arm --cpu=arm1176jzf-s --target-os=linux \
   --sysroot="$SYSROOT" \
+  \
+  # tell configure where to find headers & libs inside sysroot
+  --extra-cflags="-I$SYSROOT/usr/include -I$SYSROOT/include" \
+  --extra-ldflags="-L$SYSROOT/usr/lib/arm-linux-gnueabihf -L$SYSROOT/lib/arm-linux-gnueabihf" \
+  \
   --prefix="$PREFIX" \
   \
+  # formats, protocols, filters...
   --enable-protocol=http,https,tls,tcp,udp,file,rtp \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
   --enable-parser=h264,mjpeg \
@@ -84,25 +48,21 @@ cd ffmpeg
   --enable-filter=showinfo,scale,format,colorspace \
   --enable-indev=lavfi \
   \
+  # external libs
   --enable-libx264 \
   --enable-libv4l2 \
   --enable-libdrm \
   --enable-openssl \
   --enable-zlib \
+  \
   --enable-gpl \
   --enable-version3 \
   \
   --disable-doc \
-  --disable-debug \
-  --disable-ffplay
+  --disable-debug
 
 ###############################################################################
 # Build & Install
 ###############################################################################
-make -j$(nproc)
+make -j"$(nproc)"
 make install
-
-###############################################################################
-# Package
-###############################################################################
-tar czf ../ffmpeg-armv6.tar.gz -C "$PREFIX" .
