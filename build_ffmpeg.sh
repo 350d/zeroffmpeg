@@ -22,19 +22,17 @@ set -euxo pipefail
 #  libswscale-dev     \
 #  libswresample-dev
 
-#rm -rf /var/lib/apt/lists/*
-
-pkg-config --modversion libv4l2  
-pkg-config --list-all | grep v4l2
-
+SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-cp /usr/lib/arm-linux-gnueabihf/pkgconfig/*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/"
+cp /usr/lib/arm-linux-gnueabihf/pkgconfig/libv4l*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/"  
 
-export PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig"
-unset  PKG_CONFIG_SYSROOT_DIR
+export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig:$SYSROOT/usr/lib/pkgconfig:$SYSROOT/usr/share/pkgconfig"
 
-pkg-config --modversion libv4l2  
-pkg-config --list-all | grep v4l2
+echo "#### DEBUG LIB4L2 ####"
+pkg-config --debug --modversion libv4l2
+echo "#### DEBUG END ####"
+
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
