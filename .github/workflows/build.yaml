@@ -4,27 +4,26 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Download dockcross wrapper
-        run: docker run --rm dockcross/linux-armv6 > ./dockcross
+        run: |
+          docker run --rm dockcross/linux-armv6 > ./dockcross
+          chmod +x ./dockcross
 
       - name: Enable armhf and add Debian Bookworm repos
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            debian-archive-keyring gnupg
-
-          sudo cp /usr/share/keyrings/debian-archive-keyring.gpg \
-            /usr/share/keyrings/debian-bookworm-archive-keyring.gpg
+          sudo apt-get install -y debian-archive-keyring
 
           sudo dpkg --add-architecture armhf
 
-          sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list <<'EOF'
-          deb [arch=armhf signed-by=/usr/share/keyrings/debian-bookworm-archive-keyring.gpg] http://deb.debian.org/debian bookworm main
-          deb [arch=armhf signed-by=/usr/share/keyrings/debian-bookworm-archive-keyring.gpg] http://deb.debian.org/debian bookworm-updates main
-          deb [arch=armhf signed-by=/usr/share/keyrings/debian-bookworm-archive-keyring.gpg] http://security.debian.org/debian-security bookworm-security main
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
+          deb [arch=armhf] http://deb.debian.org/debian bookworm main
+          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
+          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
           EOF
 
           sudo apt-get update
@@ -33,24 +32,46 @@ jobs:
         env:
           SYSROOT: /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
         run: |
+          # Список нужных dev-пакетов (для которых нужны .pc)
+          PKGS=(
+            libv4l-dev:armhf
+            libdrm-dev:armhf
+            zlib1g-dev:armhf
+            libssl-dev:armhf
+            libx264-dev:armhf
+            libjpeg-dev:armhf
+            libpng-dev:armhf
+          )
+
+          # Временный sources.list только для armhf Bookworm
+          S=/tmp/bookworm-armhf.list
+          cat > $S <<'EOF'
+          deb [arch=armhf] http://deb.debian.org/debian bookworm main
+          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
+          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
+          EOF
+
+          # Скачиваем .deb из Debian, не трогая системный apt для armhf
+          sudo apt-get update -o Dir::Etc::sourcelist=$S
+          apt-get download "${PKGS[@]}"
+
+          # Распаковываем и копируем .pc в SYSROOT
           mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-          PKGS="libv4l-dev:armhf libdrm-dev:armhf zlib1g-dev:armhf libssl-dev:armhf libx264-dev:armhf libjpeg-dev:armhf libpng-dev:armhf"
-          apt-get download $PKGS
           for D in *.deb; do
             TMP=$(mktemp -d)
             dpkg-deb -x "$D" "$TMP"
-            cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig/"*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" 2>/dev/null || true
+            cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig/"*.pc \
+               "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" 2>/dev/null || true
             rm -rf "$TMP"
           done
 
-      - name: Make scripts executable
-        run: chmod +x dockcross build_ffmpeg.sh
+      - name: Make build script executable
+        run: chmod +x build_ffmpeg.sh
 
-      - name: Build inside dockcross
+      - name: Build FFmpeg inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
 
-      - name: Upload FFmpeg artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6
           path: ffmpeg-armv6.tar.gz
