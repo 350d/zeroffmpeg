@@ -23,7 +23,7 @@ jobs:
       - name: Install build dependencies in dockcross
         run: |
           ./dockcross bash -lc "apt-get update && apt-get install -y --no-install-recommends \
-          git pkg-config build-essential yasm libssl-dev libv4l-dev libdrm-dev zlib1g-dev \
+          git pkg-config build-essential yasm libssl-dev libv4l-dev v4l-utils libdrm-dev zlib1g-dev \
           libjpeg-dev libpng-dev libx264-dev libavcodec-dev libavformat-dev libavfilter-dev \
           libavutil-dev libswscale-dev libswresample-dev \
           && rm -rf /var/lib/apt/lists/*"

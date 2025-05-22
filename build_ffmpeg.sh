@@ -24,9 +24,17 @@ set -euxo pipefail
 
 #rm -rf /var/lib/apt/lists/*
 
-SYSROOT=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
+pkg-config --modversion libv4l2  
+pkg-config --list-all | grep v4l2
+
+mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
+cp /usr/lib/arm-linux-gnueabihf/pkgconfig/*.pc "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/"
+
 export PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig"
-export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+unset  PKG_CONFIG_SYSROOT_DIR
+
+pkg-config --modversion libv4l2  
+pkg-config --list-all | grep v4l2
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
