@@ -4,20 +4,18 @@ set -euo pipefail
 PREFIX="/usr/local"
 SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
-if [ ! -d ffmpeg ]; then
-  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
-fi
+echo "=== DEBUG: .pc in sysroot ==="
+ls "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" || true
+
+[ -d ffmpeg ] || git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
 pushd ffmpeg
 
-export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-
-./configure \
+# указываем PKG_CONFIG_PATH на только что заполненный каталог
+PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig" ./configure \
   --enable-cross-compile \
   --cross-prefix=armv6-unknown-linux-gnueabihf- \
   --cc=armv6-unknown-linux-gnueabihf-gcc \
-  --arch=arm \
-  --cpu=arm1176jzf-s \
-  --target-os=linux \
+  --arch=arm --cpu=arm1176jzf-s --target-os=linux \
   --sysroot="$SYSROOT" \
   --prefix="$PREFIX" \
   --enable-protocol=http,https,tls,tcp,udp,file,rtp \
@@ -30,16 +28,14 @@ export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
   --enable-filter=showinfo,scale,format,colorspace \
   --enable-indev=lavfi \
   --enable-libx264 \
-  --enable-openssl \
-  --enable-version3 \
   --enable-libv4l2 \
   --enable-libdrm \
+  --enable-openssl \
+  --enable-version3 \
   --enable-zlib \
   --enable-gpl \
-  --disable-doc \
-  --disable-debug
+  --disable-doc --disable-debug
 
 make -j"$(nproc)"
 make install
-
 popd

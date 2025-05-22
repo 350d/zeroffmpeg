@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.1
+name: Build FFmpeg for Pi Zero v6.2
 on: [workflow_dispatch]
 
 jobs:
@@ -10,23 +10,41 @@ jobs:
       - name: Download dockcross wrapper
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
 
-      - name: Enable armhf multi-arch
+      - name: Add Debian Bookworm armhf repos
         run: |
           sudo dpkg --add-architecture armhf
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list
+              deb [arch=armhf] http://deb.debian.org/debian bookworm main
+              deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
+              deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
+          EOF
+
           sudo apt-get update
 
-      - name: Install build dependencies in dockcross
+      - name: Fetch and unpack ARM dev packages into sysroot
+        env:
+          SYSROOT: /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
         run: |
-          ./dockcross bash -lc "apt-get update && apt-get install -y --no-install-recommends \
-          git pkg-config build-essential yasm libssl-dev libv4l-dev v4l-utils libdrm-dev zlib1g-dev \
-          libjpeg-dev libpng-dev libx264-dev libavcodec-dev libavformat-dev libavfilter-dev \
-          libavutil-dev libswscale-dev libswresample-dev \
-          && rm -rf /var/lib/apt/lists/*"
-      - name: Check for libv4l2.pc
-        run: ./dockcross bash -lc "ls /usr/lib/pkgconfig/libv4l2.pc"
-      
+          mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
+          PKGS="\
+            libv4l-dev:armhf \
+            libdrm-dev:armhf \
+            zlib1g-dev:armhf \
+            libssl-dev:armhf \
+            libx264-dev:armhf \
+            libjpeg-dev:armhf \
+            libpng-dev:armhf"
+          apt-get download $PKGS
+          for DEB in *.deb; do
+            TMP=$(mktemp -d)
+            dpkg-deb -x "$DEB" "$TMP"
+            cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig/"*.pc \
+               "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" || true
+            rm -rf "$TMP"
+          done
+
       - run: chmod +x dockcross build_ffmpeg.sh
-      
+
       - name: Build inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
 
