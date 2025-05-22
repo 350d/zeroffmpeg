@@ -19,6 +19,8 @@ jobs:
           libjpeg-dev libpng-dev libx264-dev libavcodec-dev libavformat-dev libavfilter-dev \
           libavutil-dev libswscale-dev libswresample-dev \
           && rm -rf /var/lib/apt/lists/*"
+      - name: Check for libv4l2.pc
+        run: ./dockcross bash -lc "ls /usr/lib/pkgconfig/libv4l2.pc"
       
       - name: Build inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
