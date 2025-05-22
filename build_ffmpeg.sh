@@ -7,26 +7,27 @@ apt-get install -y --no-install-recommends \
   git \
   pkg-config \
   yasm \
-  libssl-dev           # --enable-openssl, --enable-version3, https/tls
-  zlib1g-dev           # --enable-zlib
-  libv4l-dev           # --enable-libv4l2
-  libdrm-dev           # --enable-libdrm
-  libjpeg-dev          # mjpeg encoder/decoder, image2 demuxer
-  libpng-dev           # image2 support (PNG input/output)
-  libx264-dev          # libx264 (хотя вы можете собрать x264 вручную)
-  libavcodec-dev       # базовые кодеки (h264, mjpeg парсеры/декодеры)
-  libavformat-dev      # контейнеры (mp4, rtp/rtsp демультиплексор)
-  libavfilter-dev      # фильтры (scale, format, colorspace, showinfo через lavfi)
-  libavutil-dev        # вспомогательные утилиты
-  libswscale-dev       # масштабирование (scale)
-  libswresample-dev    # ресэмплинг (если появится аудио)
+  libssl-dev         \
+  zlib1g-dev         \
+  libv4l-dev         \
+  libdrm-dev         \
+  libjpeg-dev        \
+  libpng-dev         \
+  libx264-dev        \
+  libavcodec-dev     \
+  libavformat-dev    \
+  libavfilter-dev    \
+  libavutil-dev      \
+  libswscale-dev     \
+  libswresample-dev
 
 rm -rf /var/lib/apt/lists/*
 
 export PKG_CONFIG_PATH=/usr/xcc/armv6-unknown-linux-gnueabihf/\
 armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig:$PKG_CONFIG_PATH
 
-mkdir -p /work/build
+mkdir -p /work
+cd work
 
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
