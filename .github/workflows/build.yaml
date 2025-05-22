@@ -6,15 +6,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Check out your code
       - uses: actions/checkout@v3
 
-      # 2) Download the dockcross wrapper (pulls the image, spits out ./dockcross)
       - name: Download dockcross wrapper
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
       - run: chmod +x ./dockcross
 
-      # 3) Enable armhf and add Debian Bookworm repos on the HOST so we can apt-get download...
       - name: Enable armhf & Debian Bookworm repos
         run: |
           sudo apt-get update
@@ -27,7 +24,6 @@ jobs:
           EOF
           sudo apt-get update
 
-      # 4) Download & unpack ALL the armhf -dev packages into ./sysroot
       - name: Fetch & unpack ARMHF dev packages
         run: |
           SYSROOT="$PWD/sysroot"
@@ -49,18 +45,15 @@ jobs:
             dpkg-deb -x "$DEB" "$SYSROOT"
           done
 
-      # 5) Make sure our build script is executable
       - name: Prep build script
         run: chmod +x build_ffmpeg.sh
 
-      # 6) Run the build inside dockcross; the project root is mounted at /work
       - name: Build inside dockcross
         run: ./dockcross bash -lc "\
           export SYSROOT=/work/sysroot && \
           ./build_ffmpeg.sh \
         "
 
-      # 7) Upload the resulting tarball
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6
