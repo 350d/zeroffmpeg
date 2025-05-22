@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v5
+name: Build FFmpeg for Pi Zero (ARMv6) v5
 on: [workflow_dispatch]
 
 jobs:

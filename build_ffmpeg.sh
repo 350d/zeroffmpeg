@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
+#set -euo pipefail
 #trap 'echo "❌  error line $LINENO, status $?"' ERR
 #set -x
 
 export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 #export LDFLAGS="-static"           # musl → полностью статик
 export LDFLAGS=""
-
 export PATH="/usr/xcc/bin:$PATH"
+export AS="$CC"
 
-# ---------- 1. x264 (статически) ------------
 X264_PREFIX="$PWD/x264-build"
 export PKG_CONFIG_PATH="$X264_PREFIX/lib/pkgconfig"
 
@@ -26,7 +25,6 @@ make -j2
 make install
 popd
 
-# ---------- 2. FFmpeg -----------------------
 PREFIX="$PWD/build"
 
 git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg
