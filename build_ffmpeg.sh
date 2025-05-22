@@ -20,30 +20,33 @@ export AS="$CC"
 : "${CROSS_TRIPLE:=arm-unknown-linux-gnueabihf}"
 : "${SYSROOT:=/usr/${CROSS_TRIPLE}}"
 : "${X264_PREFIX:=/usr/local}"
-: "${WORKDIR:=$(pwd)/build}"  # Build directory
+: "${WORKDIR:=$(pwd)/build}"
+
+# Create build directory
 mkdir -p "$WORKDIR"
 
-# Build x264 for FFmpeg dependency
+# Build x264 dependency
 pushd "$WORKDIR"
-if [ ! -d "x264" ]; then
-  git clone --depth 1 https://code.videolan.org/videolan/x264.git
-fi
-cd x264
-PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig"
-./configure \
-  --host="${CROSS_TRIPLE}" \
-  --cross-prefix="${CROSS_TRIPLE}-" \
-  --prefix="${X264_PREFIX}" \
-  --sysroot="${SYSROOT}" \
-  --enable-static \
-  --disable-opencl \
-  --enable-pic \
-  --disable-cli \
-  --extra-cflags="-I${SYSROOT}/usr/include" \
-  --extra-ldflags="-L${SYSROOT}/usr/lib"
-make -j"$(nproc)"
-make install
+  if [ ! -d "x264" ]; then
+    git clone --depth 1 https://code.videolan.org/videolan/x264.git
+  fi
+  cd x264
+  PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig"
+  ./configure \
+    --host="${CROSS_TRIPLE}" \
+    --cross-prefix="${CROSS_TRIPLE}-" \
+    --prefix="${X264_PREFIX}" \
+    --sysroot="${SYSROOT}" \
+    --enable-static \
+    --disable-cli \
+    --enable-pic \
+    --disable-opencl \
+    --extra-cflags="-I${SYSROOT}/usr/include" \
+    --extra-ldflags="-L${SYSROOT}/usr/lib"
+  make -j"$(nproc)"
+  make install
 popd
+
 export PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig"
 
 # Configure FFmpeg for cross-compilation
@@ -70,12 +73,14 @@ export PKG_CONFIG_PATH="${X264_PREFIX}/lib/pkgconfig"
   --enable-filter=showinfo,scale,format,colorspace \
   --enable-indev=lavfi \
   --enable-libx264 \
-  --enable-openssl --enable-version3 \
+  --enable-openssl \
+  --enable-version3 \
   --enable-libv4l2 \
   --enable-libdrm \
   --enable-zlib \
   --enable-gpl \
-  --disable-doc --disable-debug \
+  --disable-doc \
+  --disable-debug \
   --prefix="${X264_PREFIX}"
 
 # Build and install FFmpeg
