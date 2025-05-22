@@ -4,6 +4,18 @@ set -euo pipefail
 PREFIX="/usr/local"
 SYSROOT="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
+mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
+cp /usr/lib/arm-linux-gnueabihf/pkgconfig/libv4l*.pc \
+   /usr/lib/arm-linux-gnueabihf/pkgconfig/libdrm.pc \
+   /usr/lib/arm-linux-gnueabihf/pkgconfig/zlib.pc \
+   "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/"
+
+export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig:$SYSROOT/usr/lib/pkgconfig:/usr/lib/pkgconfig"
+
+echo "libv4l2 version: $(pkg-config --with-sysroot="$SYSROOT" --modversion libv4l2)"
+pkg-config --with-sysroot="$SYSROOT" --libs libv4l2
+
 if [ ! -d ffmpeg ]; then
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
 fi
