@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v5.4
+name: Build FFmpeg for Pi Zero v5.5
 on: [workflow_dispatch]
 
 jobs:
@@ -12,6 +12,14 @@ jobs:
 
       - run: chmod +x dockcross build_ffmpeg.sh
 
+      # ← Добавляем установку зависимостей внутри контейнера
+      - name: Install build dependencies in dockcross
+        run: |
+          ./dockcross bash -lc "apt-get update \
+            && apt-get install -y --no-install-recommends \
+               git pkg-config yasm libssl-dev libv4l-dev libdrm-dev zlib1g-dev \
+            && rm -rf /var/lib/apt/lists/*"
+      
       - name: Build inside dockcross
         run: ./dockcross ./build_ffmpeg.sh
 
