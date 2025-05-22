@@ -13,26 +13,36 @@ jobs:
           docker run --rm dockcross/linux-armv6 > ./dockcross
           chmod +x ./dockcross
 
-      - name: Enable armhf and add Debian Bookworm repos
+      # Шаг для «тихой» настройки Ubuntu-источников только под amd64
+      - name: Restrict Ubuntu repos to amd64 only
+        run: |
+          # Ubuntu runner использует Mirrorlist в /etc/apt/apt-mirrors.txt
+          sudo sed -i -E 's|^deb |deb [arch=amd64] |' /etc/apt/apt-mirrors.txt
+          # на всякий случай поправим /etc/apt/sources.list тоже
+          sudo sed -i -E 's|^deb |deb [arch=amd64] |' /etc/apt/sources.list
+
+      - name: Enable armhf & add Debian Bookworm armhf repos
         run: |
           sudo apt-get update
-          sudo apt-get install -y debian-archive-keyring
+          sudo apt-get install -y --no-install-recommends gnupg dirmngr debian-archive-keyring
+
+          # установили ключи, скопируем их в доверенные
+          sudo cp /usr/share/keyrings/debian-archive-keyring.gpg /etc/apt/trusted.gpg.d/
 
           sudo dpkg --add-architecture armhf
 
-          cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
-          deb [arch=armhf] http://deb.debian.org/debian bookworm main
-          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
-          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
+          sudo tee /etc/apt/sources.list.d/bookworm-armhf.list <<EOF
+          deb [arch=armhf signed-by=/etc/apt/trusted.gpg.d/debian-archive-keyring.gpg] http://deb.debian.org/debian bookworm main
+          deb [arch=armhf signed-by=/etc/apt/trusted.gpg.d/debian-archive-keyring.gpg] http://security.debian.org/debian-security bookworm-security main
+          deb [arch=armhf signed-by=/etc/apt/trusted.gpg.d/debian-archive-keyring.gpg] http://deb.debian.org/debian bookworm-updates main
           EOF
 
           sudo apt-get update
 
-      - name: Fetch & unpack ARM dev packages
+      - name: Fetch & unpack ARM dev-packages
         env:
           SYSROOT: /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
         run: |
-          # Список нужных dev-пакетов (для которых нужны .pc)
           PKGS=(
             libv4l-dev:armhf
             libdrm-dev:armhf
@@ -43,23 +53,13 @@ jobs:
             libpng-dev:armhf
           )
 
-          # Временный sources.list только для armhf Bookworm
-          S=/tmp/bookworm-armhf.list
-          cat > $S <<'EOF'
-          deb [arch=armhf] http://deb.debian.org/debian bookworm main
-          deb [arch=armhf] http://security.debian.org/debian-security bookworm-security main
-          deb [arch=armhf] http://deb.debian.org/debian bookworm-updates main
-          EOF
-
-          # Скачиваем .deb из Debian, не трогая системный apt для armhf
-          sudo apt-get update -o Dir::Etc::sourcelist=$S
+          # скачиваем только armhf-пакеты из Debian Bookworm
           apt-get download "${PKGS[@]}"
 
-          # Распаковываем и копируем .pc в SYSROOT
           mkdir -p "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
-          for D in *.deb; do
+          for DEB in *.deb; do
             TMP=$(mktemp -d)
-            dpkg-deb -x "$D" "$TMP"
+            dpkg-deb -x "$DEB" "$TMP"
             cp "$TMP/usr/lib/arm-linux-gnueabihf/pkgconfig/"*.pc \
                "$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig/" 2>/dev/null || true
             rm -rf "$TMP"
