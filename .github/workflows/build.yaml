@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v6.6
+name: Build FFmpeg for Pi Zero v6.7
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout
+      # 1) Checkout your code
       - uses: actions/checkout@v3
 
       # 2) Download dockcross wrapper
@@ -17,32 +17,44 @@ jobs:
           docker run --rm dockcross/linux-armv6 > ./dockcross
           chmod +x ./dockcross
 
-      # 3) Enable armhf + import Debian Bookworm archive key, then add Bookworm repos
-      - name: Enable armhf & Debian Bookworm repos
+      # 3) Enable armhf + import Debian Bookworm keyring + restrict Ubuntu to amd64
+      - name: Enable armhf & add Debian Bookworm repos
         run: |
+          # ensure we can import official Debian keyring
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gnupg wget
+          sudo apt-get install -y --no-install-recommends \
+            gnupg debian-archive-keyring
 
-          # import Debian 12 ("Bookworm") archive key
-          wget -O- https://ftp-master.debian.org/keys/archive-key-12.asc \
-            | sudo gpg --dearmor -o /usr/share/keyrings/debian-archive-bookworm.gpg
-
+          # turn on armhf
           sudo dpkg --add-architecture armhf
 
-          # point to Bookworm using our new keyring
-          cat <<EOF | sudo tee /etc/apt/sources.list.d/debian-bookworm-armhf.list
-          deb [arch=armhf signed-by=/usr/share/keyrings/debian-archive-bookworm.gpg] http://deb.debian.org/debian bookworm main
-          deb [arch=armhf signed-by=/usr/share/keyrings/debian-archive-bookworm.gpg] http://deb.debian.org/debian bookworm-updates main
-          deb [arch=armhf signed-by=/usr/share/keyrings/debian-archive-bookworm.gpg] http://security.debian.org/debian-security bookworm-security main
+          # lock all existing Ubuntu entries to amd64 only, so they won't
+          # try to fetch armhf Packages (and 404)
+          sudo sed -i -E \
+            's|^deb (https?://[^ ]+ubuntu[^ ]* )|deb [arch=amd64] \1|' \
+            /etc/apt/sources.list
+
+          # now add official Debian 12 (“Bookworm”) armhf repos, using
+          # the installed keyring for signature verification
+          KEYRING=/usr/share/keyrings/debian-archive-keyring.gpg
+          cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
+          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm          main
+          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm-updates  main
+          deb [arch=armhf signed-by=${KEYRING}] http://security.debian.org/debian-security bookworm-security main
           EOF
 
+          # final update now only pulls:
+          # - amd64 Packages from Ubuntu (“noble”)
+          # - armhf Packages from Debian (“bookworm”)
           sudo apt-get update
 
       # 4) Download & unpack all the ARMHF -dev packages into ./sysroot
       - name: Fetch & unpack ARMHF dev packages
         run: |
-          SYSROOT="$PWD/sysroot"
+          SYSROOT=$PWD/sysroot
           mkdir -p "$SYSROOT"
+
+          # list of the -dev packages we need
           PKGS=(
             libc6-dev:armhf
             zlib1g-dev:armhf
@@ -53,7 +65,11 @@ jobs:
             libjpeg-dev:armhf
             libpng-dev:armhf
           )
+
+          # download them (to /var/cache/apt/archives)
           sudo apt-get install --download-only -y "${PKGS[@]}"
+
+          # extract each into our sysroot
           for DEB in /var/cache/apt/archives/*.deb; do
             dpkg-deb -x "$DEB" "$SYSROOT"
           done
@@ -62,10 +78,14 @@ jobs:
       - name: Prep build script
         run: chmod +x build_ffmpeg.sh
 
-      # 6) Cross‐compile inside dockcross
+      # 6) Cross-compile inside dockcross
       - name: Build inside dockcross
         run: |
-          ./dockcross bash -lc "export SYSROOT=/work/sysroot && ./build_ffmpeg.sh"
+          # dockcross mounts your repo at /work
+          ./dockcross bash -lc "\
+            export SYSROOT=/work/sysroot && \
+            ./build_ffmpeg.sh\
+          "
 
       # 7) Upload the resulting tarball
       - uses: actions/upload-artifact@v4
