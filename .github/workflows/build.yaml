@@ -10,14 +10,6 @@ jobs:
       - name: Download dockcross wrapper
         run: docker run --rm dockcross/linux-armv6 > ./dockcross
 
-      - name: Install binutils
-        run: |
-          ./dockcross bash -e <<EOF
-          apt-get update
-          apt-get install -y binutils-arm-linux-gnueabihf
-          ./build_ffmpeg.sh
-          EOF
-
       - run: chmod +x dockcross build_ffmpeg.sh
 
       - name: Build inside dockcross
