@@ -17,10 +17,20 @@ which as   || echo "[as not found]"
 export AS="$CC"
 
 # Default variables (override by exporting before execution)
-: "${CROSS_TRIPLE:=arm-unknown-linux-gnueabihf}"
-: "${SYSROOT:=/usr/${CROSS_TRIPLE}}"
+: "${CROSS_TRIPLE:=armv6-unknown-linux-gnueabihf}"
+# Use QEMU_LD_PREFIX if set for accurate sysroot
+: "${SYSROOT:=${QEMU_LD_PREFIX:-/usr/${CROSS_TRIPLE}}}"
 : "${X264_PREFIX:=/usr/local}"
 : "${WORKDIR:=$(pwd)/build}"
+
+# Export cross-toolchain binaries
+export CC="${CROSS_TRIPLE}-gcc"
+export CXX="${CROSS_TRIPLE}-g++"
+export AR="${CROSS_TRIPLE}-ar"
+export LD="${CROSS_TRIPLE}-ld"
+export NM="${CROSS_TRIPLE}-nm"
+export RANLIB="${CROSS_TRIPLE}-ranlib"
+export STRIP="${CROSS_TRIPLE}-strip"
 
 # Create build directory
 mkdir -p "$WORKDIR"
