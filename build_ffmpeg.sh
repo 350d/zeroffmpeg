@@ -148,9 +148,18 @@ grep -n "gcc" Makefile | head -5 || echo "No gcc references found"
 
 # Fix the double prefix issue by post-processing the Makefile
 echo "=== Fixing double prefix in Makefile ==="
+# Fix the CC line that uses $(CROSS_COMPILE)
+sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile
+# Fix any remaining double prefixes
 sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unknown-linux-gnueabihf-/g" Makefile
-echo "After fix, checking for double prefix:"
-grep "armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-" Makefile || echo "No double prefix found - fixed!"
+# Also fix AR and RANLIB if they have the same issue
+sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile
+sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile
+
+echo "After fix, checking CC line:"
+grep -n "^CC=" Makefile || echo "No CC= line found"
+echo "Checking for any remaining double prefix:"
+grep "armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-" Makefile || echo "No double prefix found - all fixed!"
 
 make -j"$(nproc)" build_libs
 sudo make install_dev
