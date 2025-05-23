@@ -98,10 +98,18 @@ RUN echo "📥 Cloning FFmpeg..." && \
 
 # 🎥 Build FFmpeg directly
 WORKDIR /tmp
-RUN echo "🎥 Building FFmpeg with pre-built dependencies..." && \
+
+# Check what we have available first
+RUN echo "🔍 Checking dependencies..." && \
+	echo "📁 Available libraries:" && \
+	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/ | head -20 && \
+	echo "📂 Available headers:" && \
+	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/ | head -10
+
+# Configure FFmpeg
+RUN echo "⚙️  Configuring FFmpeg..." && \
 	mkdir -p /tmp/install && \
 	mkdir -p build && cd build && \
-	echo "⚙️  Configuring FFmpeg..." && \
 	/tmp/ffmpeg/configure \
 		--prefix="/tmp/install" \
 		--cross-prefix=armv6-unknown-linux-gnueabihf- \
@@ -132,10 +140,24 @@ RUN echo "🎥 Building FFmpeg with pre-built dependencies..." && \
 		--enable-indev=lavfi \
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib -lx264 -lssl -lcrypto -lz -lpthread -lm -ldl" \
-		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" && \
-	echo "⏳ Building FFmpeg..." && \
-	make -j$(nproc) && \
-	echo "📦 Installing FFmpeg..." && \
+		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" || \
+	(echo "❌ FFmpeg configure failed!" && \
+	echo "📋 Config log:" && \
+	tail -50 ffbuild/config.log 2>/dev/null || echo "No config.log found" && \
+	exit 1)
+
+# Build FFmpeg
+RUN echo "⏳ Building FFmpeg..." && \
+	cd build && \
+	make -j$(nproc) 2>&1 | tee build.log || \
+	(echo "❌ FFmpeg build failed!" && \
+	echo "📋 Last 50 lines of build log:" && \
+	tail -50 build.log && \
+	exit 1)
+
+# Install FFmpeg
+RUN echo "📦 Installing FFmpeg..." && \
+	cd build && \
 	make install && \
 	echo "✅ FFmpeg build complete!" && \
 	echo "📊 Built files:" && \
