@@ -37,14 +37,14 @@ FROM base-deps AS deps-builder
 
 # 🗜️ Build zlib (cache this, it rarely changes)
 RUN echo "🗜️ Building zlib..." && \
-	git clone --depth 1 https://github.com/madler/zlib.git /tmp/zlib && \
+	git clone --depth 1 https://github.com/madler/zlib.git /tmp/zlib >/dev/null 2>&1 && \
 	cd /tmp/zlib && \
 	export CC=armv6-unknown-linux-gnueabihf-gcc && \
 	export AR=armv6-unknown-linux-gnueabihf-ar && \
 	export RANLIB=armv6-unknown-linux-gnueabihf-ranlib && \
 	CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
-	./configure --prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr --static && \
-	make -j$(nproc) && make install && \
+	./configure --prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr --static >/dev/null && \
+	make -j$(nproc) >/dev/null && make install >/dev/null && \
 	# Create simple pkg-config file for zlib
 	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/zlib.pc && \
 	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/zlib.pc && \
@@ -60,7 +60,7 @@ RUN echo "🗜️ Building zlib..." && \
 
 # 🔐 Build OpenSSL (cache this, it rarely changes)
 RUN echo "🔐 Building OpenSSL..." && \
-	git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git /tmp/openssl && \
+	git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git /tmp/openssl >/dev/null 2>&1 && \
 	cd /tmp/openssl && \
 	CC="armv6-unknown-linux-gnueabihf-gcc" \
 	AR="armv6-unknown-linux-gnueabihf-ar" \
@@ -69,13 +69,13 @@ RUN echo "🔐 Building OpenSSL..." && \
 		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr \
 		--openssldir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/ssl \
 		no-shared no-dso no-engine no-unit-test no-ui-console no-asm -static \
-		-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os && \
+		-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os >/dev/null && \
 	# Fix double prefix issue
 	sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile && \
 	sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unknown-linux-gnueabihf-/g" Makefile && \
 	sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile && \
 	sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile && \
-	make -j$(nproc) build_libs && make install_dev && \
+	make -j$(nproc) build_libs >/dev/null && make install_dev >/dev/null && \
 	# Create pkg-config files for OpenSSL
 	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
@@ -103,7 +103,7 @@ RUN echo "🔐 Building OpenSSL..." && \
 
 # 🎬 Build x264 (cache this, it rarely changes)
 RUN echo "🎬 Building x264..." && \
-	git clone --depth 1 https://code.videolan.org/videolan/x264.git /tmp/x264 && \
+	git clone --depth 1 https://code.videolan.org/videolan/x264.git /tmp/x264 >/dev/null 2>&1 && \
 	cd /tmp/x264 && \
 	export CC=armv6-unknown-linux-gnueabihf-gcc && \
 	export AR=armv6-unknown-linux-gnueabihf-ar && \
@@ -117,8 +117,8 @@ RUN echo "🎬 Building x264..." && \
 		--disable-thread \
 		--disable-asm \
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
-		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr && \
-	make -j$(nproc) && make install && \
+		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr >/dev/null && \
+	make -j$(nproc) >/dev/null && make install >/dev/null && \
 	# Create pkg-config file for x264
 	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/x264.pc && \
 	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/x264.pc && \
@@ -138,19 +138,14 @@ RUN echo "🎬 Building x264..." && \
 # ============================================================================
 FROM deps-builder AS ffmpeg-builder
 
-# 📥 Clone FFmpeg (this layer may change more often)
+# 📥 Clone FFmpeg (this layer may change more often)  
 RUN echo "📥 Cloning FFmpeg..." && \
-	git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git /tmp/ffmpeg
+	git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git /tmp/ffmpeg >/dev/null 2>&1
 
 # 🎥 Build FFmpeg directly
 WORKDIR /tmp
 
-# Check what we have available first
-RUN echo "🔍 Checking dependencies..." && \
-	echo "📁 Available libraries:" && \
-	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/ | head -20 && \
-	echo "📂 Available headers:" && \
-	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/ | head -10
+# Dependencies are ready from previous stages
 
 # Configure FFmpeg
 RUN echo "⚙️  Configuring FFmpeg..." && \
@@ -191,28 +186,15 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
 		--pkg-config=pkg-config \
 		--pkg-config-flags="--static" \
-		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" || \
-	(echo "❌ FFmpeg configure failed!" && \
-	echo "📋 Config log:" && \
-	tail -50 ffbuild/config.log 2>/dev/null || echo "No config.log found" && \
-	exit 1)
+		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" >/dev/null
 
-# Build FFmpeg
+# Build and Install FFmpeg
 RUN echo "⏳ Building FFmpeg..." && \
 	cd build && \
-	make -j$(nproc) 2>&1 | tee build.log || \
-	(echo "❌ FFmpeg build failed!" && \
-	echo "📋 Last 50 lines of build log:" && \
-	tail -50 build.log && \
-	exit 1)
-
-# Install FFmpeg
-RUN echo "📦 Installing FFmpeg..." && \
-	cd build && \
-	make install && \
-	echo "✅ FFmpeg build complete!" && \
-	echo "📊 Built files:" && \
-	ls -la /tmp/install/bin/
+	make -j$(nproc) >/dev/null && \
+	echo "📦 Installing FFmpeg..." && \
+	make install >/dev/null && \
+	echo "✅ FFmpeg build complete!"
 
 # ============================================================================
 # Stage 4: Final Output (Minimal layer)

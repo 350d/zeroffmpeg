@@ -39,11 +39,10 @@ jobs:
           echo "🔍 Checking Docker images:"
           docker images | grep zeroffmpeg || echo "❌ No zeroffmpeg image found"
           
-          # Create temporary container and check its contents
-          echo "🔍 Inspecting container contents:"
+          # Create temporary container (scratch image, no shell tools available)
+          echo "🔍 Creating container from scratch-based image..."
           docker create --name temp-zeroffmpeg zeroffmpeg:latest
-          echo "📁 Container root directory:"
-          docker exec temp-zeroffmpeg ls -la / 2>/dev/null || docker run --rm zeroffmpeg:latest ls -la /
+          echo "📁 Note: Using FROM scratch, so no internal inspection possible"
           
           # Try to extract binaries
           mkdir -p install/bin
@@ -52,16 +51,14 @@ jobs:
             echo "✅ ffmpeg extracted successfully"
           else
             echo "❌ Failed to extract ffmpeg from /ffmpeg"
-            echo "🔍 Trying alternative paths..."
-            docker run --rm zeroffmpeg:latest find / -name "ffmpeg" -type f 2>/dev/null || echo "No ffmpeg found anywhere"
+            echo "⚠️  Note: Cannot search inside scratch container (no find command)"
           fi
           
           echo "📤 Attempting to extract ffprobe..."
           if docker cp temp-zeroffmpeg:/ffprobe install/bin/ffprobe 2>/dev/null; then
             echo "✅ ffprobe extracted successfully"
           else
-            echo "⚠️  ffprobe not found"
-            docker run --rm zeroffmpeg:latest find / -name "ffprobe" -type f 2>/dev/null || echo "No ffprobe found anywhere"
+            echo "⚠️  ffprobe not found (this is normal, we only build ffmpeg)"
           fi
           
           # Clean up
