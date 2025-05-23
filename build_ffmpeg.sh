@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 1) Debug: среда
+# Debug: environment info
 echo "=== Environment ==="
 env | sort
+
 echo "=== GCC version ==="
 ${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}gcc --version
+
 echo "=== pkg-config (host) version ==="
 pkg-config --version
 
-# 2) Флаги статической сборки
+# Enable fully static build
 export PKG_CONFIG_ALL_STATIC=1
 export PKG_CONFIG_FLAGS="--static"
 echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
 echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
 
-# 3) Настройка кросс-компилятора
+# Toolchain prefixes
 CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
 echo "Using cross-prefix: $CROSS_PREFIX"
 export CC=${CROSS_PREFIX}gcc
@@ -26,16 +28,21 @@ export NM=${CROSS_PREFIX}nm
 export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
-# 4) Собираем v4l-utils статически
+# ARCH flags for ARMv6 hard-float
+ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
+
+# 1) Build static v4l-utils for libv4l2 support
 echo "=== Build static v4l-utils ==="
 V4L_SRC=v4l-utils
 V4L_INSTALL=$(pwd)/v4l-install
 if [ ! -d "$V4L_SRC" ]; then
-  echo "Cloning v4l-utils (Mercurial)…"
-  hg clone https://linuxtv.org/hg/v4l-utils "$V4L_SRC"
+  echo "Cloning v4l-utils from git.linuxtv.org…"
+  git clone --depth 1 https://git.linuxtv.org/v4l-utils.git "$V4L_SRC"
 fi
 cd "$V4L_SRC"
-autoreconf -fvi
+# Generate configure script
+./autogen.sh
+# Configure static library build
 HOST_TRIPLE=${CROSS_PREFIX%-}
 ./configure \
   --host="$HOST_TRIPLE" \
@@ -47,30 +54,32 @@ make -j"$(nproc)"
 make install
 cd ..
 
-# 5) Настраиваем pkg-config
+echo "Static v4l-utils installed to $V4L_INSTALL"
+
+# 2) Configure pkg-config path to include v4l-install first
 export PKG_CONFIG_PATH="$V4L_INSTALL/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
 echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 
-# 6) Собираем FFmpeg статически
-ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-
-echo "=== Computing CFLAGS/LDFLAGS ==="
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib)"
+# 3) Compute CFLAGS and LDFLAGS for external libs
+echo "=== Computing CFLAGS and LDFLAGS ==="
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264)"
 echo "CFLAGS=$CFLAGS"
 LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib) -static"
 echo "LDFLAGS=$LDFLAGS"
 
-# 7) Клонируем FFmpeg из Git, если нужно
+# 4) Clone latest FFmpeg from Git
 FFMPEG_SRC=ffmpeg
 if [ ! -d "$FFMPEG_SRC" ]; then
   echo "Cloning latest FFmpeg…"
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
-# 8) Конфигурация и сборка FFmpeg
-PREFIX="$(pwd)/install"
+# 5) Prepare build directory
+PREFIX=$(pwd)/install
 mkdir -p build && cd build
 
+# 6) Configure fully static FFmpeg
+echo "=== Configuring FFmpeg ==="
 bash -x ../$FFMPEG_SRC/configure \
   --prefix="$PREFIX" \
   --cross-prefix=$CROSS_PREFIX \
@@ -90,7 +99,7 @@ bash -x ../$FFMPEG_SRC/configure \
   --enable-libv4l2 \
   --enable-libdrm \
   --enable-libx264 \
-  --enable-zlib \
+  --enable-zlib \\
   --enable-protocol=http,https,tls,tcp,udp,file \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
   --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
@@ -103,8 +112,9 @@ bash -x ../$FFMPEG_SRC/configure \
   --extra-cflags="$CFLAGS" \
   --extra-ldflags="$LDFLAGS"
 
-echo "=== Building FFmpeg… ==="
+# 7) Build & install
+echo "=== Building FFmpeg ==="
 make -j"$(nproc)"
 make install
 
-echo "Static FFmpeg build complete. Binaries in $PREFIX/bin"
+echo "=== Static FFmpeg build complete. Binaries in $PREFIX/bin ==="
