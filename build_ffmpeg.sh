@@ -11,12 +11,12 @@ ${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}gcc --version
 echo "=== pkg-config version ==="
 pkg-config --version
 
-# Static build flags
+# Static build flags defaults
+export PKG_CONFIG_ALL_STATIC=${PKG_CONFIG_ALL_STATIC:-1}
+export PKG_CONFIG_FLAGS=${PKG_CONFIG_FLAGS:-"--static"}
+
 echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
 echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
-# Ensure fetch tools available
-command -v wget >/dev/null || { echo "wget not found, install it"; exit 1; }
-command -v bzip2 >/dev/null || { echo "bzip2 not found, install it"; exit 1; }
 
 # Architecture and toolchain prefixes
 CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
@@ -39,7 +39,7 @@ echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig"
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
-# Compute CFLAGS and extra ldflags (not exported globally)
+# Compute CFLAGS and extra ldflags
 CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert gnutls)"
 EXTRA_LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
 echo "CFLAGS=$CFLAGS"
