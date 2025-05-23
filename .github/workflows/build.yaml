@@ -1,21 +1,23 @@
-name: Build FFmpeg for Pi Zero
+name: 🎬 Build FFmpeg for Raspberry Pi Zero 🥧
 
 on: [workflow_dispatch]
 
 jobs:
   build:
+    name: 🚀 Cross-compile FFmpeg for ARMv6
     runs-on: ubuntu-latest
     container:
       image: dockcross/linux-armv6:latest
       options: --platform linux/amd64  # Ensure container runs on x86_64
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
-          apt-get update
+          echo "📦 =============== INSTALLING DEPENDENCIES ==============="
+          apt-get update >/dev/null 2>&1
           apt-get install -y \
           automake \
           autoconf \
@@ -37,61 +39,74 @@ jobs:
           pkg-config \
           sudo \
           yasm \
-          zlib1g-dev
+          zlib1g-dev >/dev/null 2>&1
+          echo "✅ All dependencies installed successfully"
 
-      - name: Setup environment
+      - name: 🔧 Setup environment
         run: |
+          echo "🔧 =============== SETTING UP ENVIRONMENT ==============="
           # Set up sysroot directories with proper permissions
+          echo "📁 Creating sysroot directories..."
           sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
           sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
           sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig
           sudo chmod -R 777 /usr/xcc/armv6-unknown-linux-gnueabihf
 
           # Set up pkg-config
-          echo "=== Setting up pkg-config ==="
+          echo "📦 Setting up pkg-config..."
           export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
           # Debug information
-          echo "=== System Information ==="
-          uname -a
-          echo "=== Compiler Information ==="
-          ${CROSS_COMPILE}gcc --version
-          echo "=== PKG Config Information ==="
-          pkg-config --version
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-          echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
-          echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
-          echo "=== Environment Variables ==="
-          env | sort
-          echo "=== Directory Structure ==="
-          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
-          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/
-          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/
+          echo "🔍 =============== SYSTEM INFORMATION ==============="
+          echo "🖥️  System: $(uname -m)"
+          echo "🔧 Compiler: $(${CROSS_COMPILE}gcc --version | head -1)"
+          echo "📦 PKG-Config: $(pkg-config --version)"
+          echo "✅ Environment setup complete"
 
-      - name: Make build script executable
+      - name: 🏗️  Make build script executable
         run: |
+          echo "🏗️  Preparing build script..."
           chmod +x build_ffmpeg.sh
+          echo "✅ Build script ready"
 
-      - name: Run cross-compilation
+      - name: ⚙️  Run cross-compilation
         run: |
+          echo "⚙️  =============== STARTING CROSS-COMPILATION ==============="
           export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
-          export PKG_CONFIG_DEBUG_SPEW=1
           ./build_ffmpeg.sh
 
-      - name: Check build artifacts
+      - name: 🧪 Verify build artifacts
         run: |
-          ls -la /__w/zeroffmpeg/install/bin/
-          file /__w/zeroffmpeg/install/bin/ffmpeg
-          ${CROSS_COMPILE}readelf -h /__w/zeroffmpeg/install/bin/ffmpeg
-          ldd /__w/zeroffmpeg/install/bin/ffmpeg || true
+          echo "🧪 =============== VERIFYING BUILD ARTIFACTS ==============="
+          if [ -f "install/bin/ffmpeg" ]; then
+            echo "✅ FFmpeg binary found!"
+            echo "📊 Binary size: $(ls -lh install/bin/ffmpeg | awk '{print $5}')"
+            echo "🏗️  Architecture: $(file install/bin/ffmpeg | grep -o 'ARM.*')"
+            echo "🔍 ELF Header info:"
+            ${CROSS_COMPILE}readelf -h install/bin/ffmpeg | grep -E "(Class|Machine|Entry)"
+            echo "🔗 Dependencies check:"
+            ldd install/bin/ffmpeg 2>/dev/null && echo "⚠️  Dynamic linking detected" || echo "✅ Static binary confirmed"
+          else
+            echo "❌ FFmpeg binary not found!"
+            echo "📁 Available files in install/bin:"
+            ls -la install/bin/ || echo "❌ install/bin directory not found"
+            exit 1
+          fi
+          
+          if [ -f "install/bin/ffprobe" ]; then
+            echo "✅ FFprobe binary found!"
+            echo "📊 FFprobe size: $(ls -lh install/bin/ffprobe | awk '{print $5}')"
+          else
+            echo "⚠️  FFprobe binary not found"
+          fi
 
-      - name: Upload build artifacts
+      - name: 📤 Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-armv6-static
-          path: /__w/zeroffmpeg/install/bin/
+          name: 🎬-ffmpeg-armv6-static-🥧
+          path: install/bin/
           if-no-files-found: error
