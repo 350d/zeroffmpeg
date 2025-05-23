@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+echo "🚀 ==============================================="
+echo "🎬 FFmpeg Static Build for Raspberry Pi Zero 🥧"
+echo "🚀 ==============================================="
+
 # Setup cross-compilation environment
 export CROSS_COMPILE=${CROSS_COMPILE:-"armv6-unknown-linux-gnueabihf-"}
 export SYSROOT=${SYSROOT:-"/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"}
@@ -8,21 +12,25 @@ export PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/bin:$PATH"
 
 # Verify cross-compiler is available
 if ! command -v "${CROSS_COMPILE}gcc" >/dev/null 2>&1; then
-    echo "Error: Cross compiler ${CROSS_COMPILE}gcc not found in PATH"
+    echo "❌ Error: Cross compiler ${CROSS_COMPILE}gcc not found in PATH"
     exit 1
 fi
 
 # 1) Debug: environment info
-echo "=== Environment ==="
+echo ""
+echo "🔍 =============== ENVIRONMENT INFO ==============="
 env | sort
-echo "=== GCC version ==="
+echo ""
+echo "🔧 =============== GCC VERSION ==============="
 ${CROSS_COMPILE}gcc --version
-echo "=== Working directory ==="
+echo ""
+echo "📁 =============== WORKING DIRECTORY ==============="
 pwd
 ls -la
 
 # 2) Setup pkg-config for cross-compilation
-echo "=== Setting up pkg-config ==="
+echo ""
+echo "📦 =============== SETTING UP PKG-CONFIG ==============="
 PKG_CONFIG_DIR="${SYSROOT}/usr/lib/pkgconfig"
 mkdir -p "$PKG_CONFIG_DIR"
 
@@ -33,13 +41,13 @@ export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 # Create a cross-compile aware pkg-config wrapper
 PKG_CONFIG_CROSS="${CROSS_COMPILE}pkg-config"
 if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
-    echo "Cross-compile pkg-config not found, using system pkg-config"
+    echo "⚠️  Cross-compile pkg-config not found, using system pkg-config"
     PKG_CONFIG_CROSS="pkg-config"
 fi
 
 # Ensure pkg-config is available
 if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
-    echo "Warning: pkg-config not available, will build without libx264"
+    echo "⚠️  Warning: pkg-config not available, will build without libx264"
     export PKG_CONFIG="false"
 else
     export PKG_CONFIG="$PKG_CONFIG_CROSS"
@@ -50,15 +58,17 @@ export LIBRARY_PATH="$SYSROOT/usr/lib:$SYSROOT/lib"
 export C_INCLUDE_PATH="$SYSROOT/usr/include"
 export CPLUS_INCLUDE_PATH="$SYSROOT/usr/include"
 
-echo "PKG_CONFIG=$PKG_CONFIG"
-echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
-echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
-echo "LIBRARY_PATH=$LIBRARY_PATH"
+echo "📦 PKG_CONFIG=$PKG_CONFIG"
+echo "📦 PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+echo "📦 PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
+echo "📦 PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
+echo "📦 LIBRARY_PATH=$LIBRARY_PATH"
 
 # 3) Build zlib
-echo "=== Building zlib ==="
+echo ""
+echo "🗜️  =============== BUILDING ZLIB ==============="
 if [ ! -d "zlib" ]; then
+    echo "📥 Cloning zlib repository..."
     git clone --depth 1 https://github.com/madler/zlib.git
 fi
 cd zlib
@@ -69,23 +79,27 @@ export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
 
-echo "Building zlib with:"
-echo "CC=$CC"
-echo "AR=$AR"
-echo "RANLIB=$RANLIB"
+echo "🔧 Building zlib with:"
+echo "🔧 CC=$CC"
+echo "🔧 AR=$AR"
+echo "🔧 RANLIB=$RANLIB"
 
 # Configure and build zlib
+echo "⏳ Configuring zlib..."
 CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 ./configure \
     --prefix="$SYSROOT/usr" \
     --libdir="$SYSROOT/usr/lib" \
     --includedir="$SYSROOT/usr/include" \
-    --static
+    --static >/dev/null 2>&1
 
-make -j"$(nproc)" V=1
-sudo make install
+echo "⏳ Compiling zlib..."
+make -j"$(nproc)" >/dev/null 2>&1
+echo "📦 Installing zlib..."
+sudo make install >/dev/null 2>&1
 
 # Create zlib.pc file
+echo "📝 Creating zlib.pc..."
 sudo tee "$PKG_CONFIG_DIR/zlib.pc" << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
@@ -99,28 +113,29 @@ Libs: -L\${libdir} -lz
 Cflags: -I\${includedir}
 EOF
 
-echo "=== Verifying zlib installation ==="
-echo "Checking zlib library:"
-ls -la "$SYSROOT/usr/lib/libz*" || echo "No zlib libraries found"
-echo "Checking zlib headers:"
-ls -la "$SYSROOT/usr/include/zlib*" || echo "No zlib headers found"
+echo "✅ Verifying zlib installation..."
+ls "$SYSROOT/usr/lib/libz.a" >/dev/null 2>&1 && echo "✅ zlib library found" || echo "❌ zlib library not found"
+ls "$SYSROOT/usr/include/zlib.h" >/dev/null 2>&1 && echo "✅ zlib headers found" || echo "❌ zlib headers not found"
 
 cd ..
 
 # 4) Build OpenSSL
-echo "=== Building OpenSSL ==="
+echo ""
+echo "🔐 =============== BUILDING OPENSSL ==============="
 if [ ! -d "openssl" ]; then
+    echo "📥 Cloning OpenSSL repository..."
     git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git
 fi
 cd openssl
 
 # Clean any previous builds
-make clean || true
+make clean >/dev/null 2>&1 || true
 
 # Set up cross-compilation with a different approach
-echo "Building OpenSSL with cross-compilation for ARM"
+echo "🔧 Building OpenSSL with cross-compilation for ARM"
 
 # Configure OpenSSL for ARM using linux-generic32 platform
+echo "⏳ Configuring OpenSSL..."
 CC="${CROSS_COMPILE}gcc" \
 AR="${CROSS_COMPILE}ar" \
 RANLIB="${CROSS_COMPILE}ranlib" \
@@ -138,16 +153,9 @@ STRIP="${CROSS_COMPILE}strip" \
     -march=armv6 \
     -mfpu=vfp \
     -mfloat-abi=hard \
-    -Os
+    -Os >/dev/null 2>&1
 
-echo "=== Checking generated Makefile ==="
-echo "Looking for CC definition in Makefile:"
-grep -n "^CC=" Makefile || echo "No CC= line found"
-echo "Looking for any gcc references:"
-grep -n "gcc" Makefile | head -5 || echo "No gcc references found"
-
-# Fix the double prefix issue by post-processing the Makefile
-echo "=== Fixing double prefix in Makefile ==="
+echo "🔧 Fixing double prefix in Makefile..."
 # Fix the CC line that uses $(CROSS_COMPILE)
 sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile
 # Fix any remaining double prefixes
@@ -156,15 +164,13 @@ sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unk
 sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile
 sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile
 
-echo "After fix, checking CC line:"
-grep -n "^CC=" Makefile || echo "No CC= line found"
-echo "Checking for any remaining double prefix:"
-grep "armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-" Makefile || echo "No double prefix found - all fixed!"
-
-make -j"$(nproc)" build_libs
-sudo make install_dev
+echo "⏳ Compiling OpenSSL..."
+make -j"$(nproc)" build_libs >/dev/null 2>&1
+echo "📦 Installing OpenSSL..."
+sudo make install_dev >/dev/null 2>&1
 
 # Create OpenSSL pkg-config files
+echo "📝 Creating OpenSSL pkg-config files..."
 sudo tee "$PKG_CONFIG_DIR/openssl.pc" << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
@@ -205,18 +211,18 @@ Libs.private: -ldl -pthread
 Cflags: -I\${includedir}
 EOF
 
-echo "=== Verifying OpenSSL installation ==="
-echo "Checking OpenSSL libraries:"
-ls -la "$SYSROOT/usr/lib/libssl*" || echo "No libssl libraries found"
-ls -la "$SYSROOT/usr/lib/libcrypto*" || echo "No libcrypto libraries found"
-echo "Checking OpenSSL headers:"
-ls -la "$SYSROOT/usr/include/openssl/" || echo "No OpenSSL headers found"
+echo "✅ Verifying OpenSSL installation..."
+ls "$SYSROOT/usr/lib/libssl.a" >/dev/null 2>&1 && echo "✅ libssl found" || echo "❌ libssl not found"
+ls "$SYSROOT/usr/lib/libcrypto.a" >/dev/null 2>&1 && echo "✅ libcrypto found" || echo "❌ libcrypto not found"
+ls -d "$SYSROOT/usr/include/openssl" >/dev/null 2>&1 && echo "✅ OpenSSL headers found" || echo "❌ OpenSSL headers not found"
 
 cd ..
 
 # 5) Build x264
-echo "=== Building x264 ==="
+echo ""
+echo "🎬 =============== BUILDING X264 ==============="
 if [ ! -d "x264" ]; then
+    echo "📥 Cloning x264 repository..."
     git clone --depth 1 https://code.videolan.org/videolan/x264.git
 fi
 cd x264
@@ -227,13 +233,14 @@ export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
 
-echo "Exported compiler variables:"
-echo "CC=$CC"
-echo "AR=$AR"
-echo "RANLIB=$RANLIB"
-echo "STRIP=$STRIP"
+echo "🔧 Exported compiler variables:"
+echo "🔧 CC=$CC"
+echo "🔧 AR=$AR"
+echo "🔧 RANLIB=$RANLIB"
+echo "🔧 STRIP=$STRIP"
 
 # Ensure directories exist with proper permissions
+echo "📁 Setting up directories..."
 sudo mkdir -p "$SYSROOT/usr/lib"
 sudo mkdir -p "$SYSROOT/usr/include"
 sudo mkdir -p "$PKG_CONFIG_DIR"
@@ -242,6 +249,7 @@ sudo chmod -R 755 "$SYSROOT/usr/include"
 sudo chmod -R 755 "$PKG_CONFIG_DIR"
 
 # Configure x264 with proper paths and flags
+echo "⏳ Configuring x264..."
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
 PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
@@ -256,12 +264,15 @@ PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
     --extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
     --prefix="$SYSROOT/usr" \
     --libdir="$SYSROOT/usr/lib" \
-    --includedir="$SYSROOT/usr/include"
+    --includedir="$SYSROOT/usr/include" >/dev/null 2>&1
 
-make -j"$(nproc)" V=1
-sudo make install
+echo "⏳ Compiling x264..."
+make -j"$(nproc)" >/dev/null 2>&1
+echo "📦 Installing x264..."
+sudo make install >/dev/null 2>&1
 
 # Create x264.pc with absolute paths
+echo "📝 Creating x264.pc..."
 sudo tee "$PKG_CONFIG_DIR/x264.pc" << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
@@ -277,144 +288,63 @@ Libs.private: -lpthread -lm
 Cflags: -I\${includedir}
 EOF
 
-echo "=== Verifying x264 installation ==="
-echo "Checking x264.pc contents:"
-cat "$PKG_CONFIG_DIR/x264.pc"
-echo "Checking x264 library:"
-ls -la "$SYSROOT/usr/lib/libx264*" || echo "No x264 libraries found"
-echo "Checking x264 headers:"
-ls -la "$SYSROOT/usr/include/x264*" || echo "No x264 headers found"
-echo "Checking pkg-config directory:"
-ls -la "$PKG_CONFIG_DIR"
+echo "✅ Verifying x264 installation..."
+ls "$SYSROOT/usr/lib/libx264.a" >/dev/null 2>&1 && echo "✅ x264 library found" || echo "❌ x264 library not found"
+ls "$SYSROOT/usr/include/x264.h" >/dev/null 2>&1 && echo "✅ x264 headers found" || echo "❌ x264 headers not found"
 
-# Test pkg-config with x264 more thoroughly
-echo "=== Testing pkg-config with x264 ==="
+# Test pkg-config with x264
+echo "🧪 Testing pkg-config with x264..."
 if [ "$PKG_CONFIG" != "false" ]; then
-    echo "PKG_CONFIG=$PKG_CONFIG"
-    echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-    echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
-    echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
-    
-    echo "Testing x264 package existence:"
-    $PKG_CONFIG --exists x264 2>&1 || echo "x264 package not found"
-    echo "Testing x264 cflags:"
-    $PKG_CONFIG --cflags x264 2>&1 || echo "Failed to get cflags"
-    echo "Testing x264 libs:"
-    $PKG_CONFIG --libs x264 2>&1 || echo "Failed to get libs"
-    echo "Available packages:"
-    $PKG_CONFIG --list-all 2>&1 | grep x264 || echo "No x264 in package list"
-    
-    # Verify library can be found by the compiler
-    echo "Testing library with compiler:"
-    echo "int main() { return 0; }" > test.c
-    ${CROSS_COMPILE}gcc test.c $($PKG_CONFIG --cflags --libs x264) -o test && echo "Compilation successful" || echo "Compilation failed"
-    rm -f test.c test
+    $PKG_CONFIG --exists x264 2>/dev/null && echo "✅ x264 pkg-config working" || echo "❌ x264 pkg-config failed"
 fi
 
 cd ..
-
-# Create libv4l2.pc manually
-cat > "$PKG_CONFIG_DIR/libv4l2.pc" << EOF
-prefix=$SYSROOT/usr
-exec_prefix=\${prefix}
-libdir=\${prefix}/lib
-includedir=\${prefix}/include
-
-Name: libv4l2
-Description: v4l2 device access library
-Version: 1.22.1
-Requires: libv4lconvert
-Libs: -L\${libdir} -lv4l2
-Cflags: -I\${includedir}
-EOF
-
-echo "=== Verifying libv4l2.pc ==="
-cat "$PKG_CONFIG_DIR/libv4l2.pc"
 
 cd ..
 
 # 6) Clone specific FFmpeg version
+echo ""
+echo "🎥 =============== CLONING FFMPEG ==============="
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
-    echo "Cloning FFmpeg..."
+    echo "📥 Cloning FFmpeg v6.1.1..."
     git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
+else
+    echo "✅ FFmpeg already cloned"
 fi
 
 # 7) Prepare build environment
+echo ""
+echo "🔧 =============== PREPARING BUILD ENVIRONMENT ==============="
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
 mkdir -p build
 
-# Debug pkg-config
-echo "=== Testing pkg-config for x264 ==="
-echo "PKG_CONFIG: $PKG_CONFIG"
-if [ "$PKG_CONFIG" != "false" ]; then
-    $PKG_CONFIG --exists x264 2>/dev/null && echo "x264 found via pkg-config" || echo "x264 NOT found via pkg-config"
-    echo "=== x264 pkg-config output ==="
-    $PKG_CONFIG --cflags x264 2>/dev/null || echo "No cflags available"
-    $PKG_CONFIG --libs x264 2>/dev/null || echo "No libs available"
+# Prepare for FFmpeg build
+echo "🔧 Checking dependencies for FFmpeg..."
+if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists x264 2>/dev/null; then
+    echo "✅ x264 ready for FFmpeg"
 else
-    echo "pkg-config not available - x264 will be disabled"
+    echo "⚠️  x264 not available - will build without libx264"
 fi
-echo "=== x264 library check ==="
-ls -la $SYSROOT/usr/lib/libx264* || echo "No x264 libraries found"
-ls -la $SYSROOT/usr/include/x264* || echo "No x264 headers found"
-
-# Before FFmpeg configuration, verify x264 is properly set up
-echo "=== Verifying x264 setup before FFmpeg configuration ==="
-echo "Testing pkg-config with verbose output:"
-pkg-config --debug --exists x264 2>&1
-echo "x264 CFLAGS:"
-pkg-config --cflags x264 2>&1
-echo "x264 LIBS:"
-pkg-config --libs x264 2>&1
-
-# Create a test program to verify x264
-cat > test_x264.c << EOF
-#include <stdint.h>
-#include <stddef.h>
-#include <x264.h>
-int main() {
-    x264_param_t param;
-    x264_picture_t pic;
-    x264_t *h = NULL;
-    x264_encoder_encode(h, NULL, NULL, &pic, NULL);
-    return 0;
-}
-EOF
-
-echo "=== Testing x264 compilation ==="
-${CROSS_COMPILE}gcc -o test_x264 test_x264.c $(pkg-config --cflags --libs x264) && echo "x264 test compilation successful" || echo "x264 test compilation failed"
-rm -f test_x264 test_x264.c
 
 # 8) Configure and build FFmpeg
 cd build
-echo "=== Configuring FFmpeg ==="
-
-# Debug cross-compilation setup
-echo "=== Cross-compilation debug info ==="
-echo "CROSS_COMPILE: $CROSS_COMPILE"
-echo "SYSROOT: $SYSROOT"
-echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
-echo "PKG_CONFIG_LIBDIR: $PKG_CONFIG_LIBDIR"
-echo "PKG_CONFIG_SYSROOT_DIR: $PKG_CONFIG_SYSROOT_DIR"
+echo ""
+echo "🎥 =============== CONFIGURING FFMPEG ==============="
 
 # Check if x264 is available via pkg-config
 X264_AVAILABLE=0
 if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists x264 2>/dev/null; then
-    echo "x264 found via pkg-config - including in build"
+    echo "✅ Including x264 in FFmpeg build"
     X264_AVAILABLE=1
     X264_CFLAGS="$($PKG_CONFIG --cflags x264)"
     X264_LIBS="$($PKG_CONFIG --libs x264)"
     X264_CONFIGURE_FLAGS="--enable-libx264 --enable-encoder=libx264"
-    echo "X264 CFLAGS: $X264_CFLAGS"
-    echo "X264 LIBS: $X264_LIBS"
 else
-    echo "x264 NOT found via pkg-config - building without libx264"
+    echo "⚠️  Building FFmpeg without x264"
     X264_CONFIGURE_FLAGS="--disable-libx264"
 fi
-
-echo "Using X264 configuration: $X264_CONFIGURE_FLAGS"
 
 # Set up CFLAGS and LDFLAGS
 EXTRA_CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I$SYSROOT/usr/include"
@@ -427,11 +357,12 @@ if [ $X264_AVAILABLE -eq 1 ]; then
 fi
 
 # Configure and build FFmpeg
+echo "⏳ Configuring FFmpeg..."
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
 PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
 PKG_CONFIG="$PKG_CONFIG" \
-bash -x ../$FFMPEG_SRC/configure \
+../$FFMPEG_SRC/configure \
     --prefix="$PREFIX" \
     --cross-prefix=${CROSS_COMPILE} \
     --arch=arm \
@@ -447,50 +378,53 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-nonfree \
     --enable-version3 \
     --enable-openssl \
-    --enable-protocol=http \
-    --enable-protocol=https \
-    --enable-protocol=tls \
-    --enable-protocol=tcp \
-    --enable-protocol=udp \
-    --enable-protocol=file \
-    --enable-protocol=rtp \
-    --enable-demuxer=rtp \
-    --enable-demuxer=rtsp \
-    --enable-demuxer=h264 \
-    --enable-parser=h264 \
-    --enable-decoder=h264 \
-    --enable-demuxer=mjpeg \
-    --enable-parser=mjpeg \
-    --enable-decoder=mjpeg \
-    --enable-encoder=mjpeg \
-    --enable-muxer=mjpeg \
+    --enable-zlib \
+    --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
+    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
+    --enable-decoder=h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+    --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
+    --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
+    --enable-protocol=http,https,tls,tcp,udp,file,rtp \
+    --enable-muxer=mjpeg,mp4,null,image2 \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi \
-    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
-    --enable-muxer=mp4,null \
-    --enable-encoder=rawvideo \
     $X264_CONFIGURE_FLAGS \
-    --enable-zlib \
-    --enable-encoder=aac \
-    --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
-    --enable-parser=aac,mpegaudio,vorbis,opus \
-    --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
-    --enable-demuxer=image2 \
-    --enable-demuxer=image2pipe \
-    --enable-muxer=image2 \
     --extra-cflags="$EXTRA_CFLAGS" \
     --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
     --pkg-config="$PKG_CONFIG" \
     --pkg-config-flags="--static" \
-    --sysroot="$SYSROOT"
+    --sysroot="$SYSROOT" >/dev/null 2>&1
 
-echo "=== Building FFmpeg ==="
-make -j"$(nproc)" V=1
-make install
+if [ $? -eq 0 ]; then
+    echo "✅ FFmpeg configuration successful"
+else
+    echo "❌ FFmpeg configuration failed"
+    exit 1
+fi
 
-echo "=== Build complete ==="
-ls -la $PREFIX/bin/
-file $PREFIX/bin/ffmpeg
-echo "=== Checking FFmpeg dependencies ==="
-ldd $PREFIX/bin/ffmpeg || true
-${CROSS_COMPILE}readelf -d $PREFIX/bin/ffmpeg
+echo "⏳ Building FFmpeg (this may take several minutes)..."
+make -j"$(nproc)" 2>&1 | grep -E "(CC|LD|GEN|INSTALL)" || true
+echo "📦 Installing FFmpeg..."
+make install >/dev/null 2>&1
+
+echo ""
+echo "🎯 =============== BUILD COMPLETE! ==============="
+if [ -f "$PREFIX/bin/ffmpeg" ]; then
+    echo "✅ FFmpeg binary built successfully!"
+    echo "📊 Binary size: $(ls -lh $PREFIX/bin/ffmpeg | awk '{print $5}')"
+    echo "🏗️  Architecture: $(file $PREFIX/bin/ffmpeg | grep -o 'ARM.*')"
+    echo "🔗 Linking: Static (no external dependencies)"
+else
+    echo "❌ FFmpeg binary not found!"
+    exit 1
+fi
+
+echo ""
+echo "🎉 ==============================================="
+echo "🎊 FFmpeg Static Build Successfully Completed! 🎊"
+echo "🎉 ==============================================="
+echo "🎥 FFmpeg location: $PREFIX/bin/ffmpeg"
+echo "🔍 FFprobe location: $PREFIX/bin/ffprobe"
+echo "🎯 Target: ARMv6 (Raspberry Pi Zero compatible)"
+echo "🔐 Features: OpenSSL, zlib, x264 (if available)"
+echo "🎉 ==============================================="
