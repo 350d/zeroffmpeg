@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v7.2
+name: Build FFmpeg for Pi Zero v7.3
 
 on: [workflow_dispatch]
 
@@ -28,7 +28,7 @@ jobs:
             libdrm-dev:armhf \
             libgnutls28-dev:armhf \
             zlib1g-dev:armhf \
-            libalsa-dev:armhf \
+            libasound2-dev:armhf \
             libx264-dev:armhf \
             libopus-dev:armhf \
             libogg-dev:armhf \
@@ -51,4 +51,3 @@ jobs:
         with:
           name: ffmpeg-armv6-static
           path: build/install/bin
-          
