@@ -24,8 +24,11 @@ jobs:
           apt-get install -y \
             libc6-dev:armhf \
             pkg-config \
+            libc6-dev:armhf \
+            pkg-config \
             libv4l-dev:armhf \
             libdrm-dev:armhf \
+            libssl-dev:armhf \
             zlib1g-dev:armhf \
             libasound2-dev:armhf \
             libx264-dev:armhf \
@@ -33,15 +36,7 @@ jobs:
             libogg-dev:armhf \
             libvorbis-dev:armhf \
             libmp3lame-dev:armhf \
-            libjpeg-dev:armhf \
-            libgmp-dev:armhf \
-            libnettle-dev:armhf \
-            libhogweed-dev:armhf \
-            libtasn1-dev:armhf \
-            libidn2-dev:armhf \
-            libp11-kit-dev:armhf \
-            libunistring-dev:armhf \
-            libssl-dev:armhf
+            libjpeg-dev:armhf 
 
       - name: Make build script executable
         run: chmod +x build_ffmpeg.sh
