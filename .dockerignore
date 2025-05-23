@@ -1,0 +1,51 @@
+# 🚀 Docker ignore file for faster builds
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Build artifacts
+install/
+build/
+*.o
+*.a
+*.so
+*.dylib
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Source repositories (we clone them in Docker)
+zlib/
+openssl/
+x264/
+ffmpeg/
+
+# Archives
+*.tar.gz
+*.zip
+*.tar.xz
+
+# Only include what we need
+!build_ffmpeg.sh
+!Dockerfile 

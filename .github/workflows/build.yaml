@@ -6,78 +6,79 @@ jobs:
   build:
     name: 🚀 Cross-compile FFmpeg for ARMv6
     runs-on: ubuntu-latest
-    container:
-      image: dockcross/linux-armv6:latest
-      options: --platform linux/amd64  # Ensure container runs on x86_64
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: 📦 Install dependencies
+      - name: 🏗️  Build with optimized Docker
         run: |
-          echo "📦 =============== INSTALLING DEPENDENCIES ==============="
-          apt-get update >/dev/null 2>&1
-          apt-get install -y \
-          automake \
-          autoconf \
-          build-essential \
-          ccache \
-          cmake \
-          git \
-          libasound2-dev \
-          libdrm-dev \
-          libgnutls28-dev \
-          libjpeg-dev \
-          libssl-dev \
-          libv4l-dev \
-          libx264-dev \
-          libtool \
-          make \
-          nasm \
-          openssl \
-          pkg-config \
-          sudo \
-          yasm \
-          zlib1g-dev >/dev/null 2>&1
-          echo "✅ All dependencies installed successfully"
+          echo "🏗️  =============== BUILDING WITH DOCKER ==============="
+          echo "📦 Using multi-stage Dockerfile with cached dependencies..."
+          
+          # Build using the optimized Dockerfile with verbose output
+          echo "🔧 Building Docker image..."
+          if docker build --target output -t zeroffmpeg:latest . 2>&1; then
+            echo "✅ Docker build completed successfully!"
+          else
+            echo "❌ Docker build failed!"
+            echo "🔍 Trying to build intermediate stages for debugging..."
+            docker build --target deps-builder -t debug-deps . || echo "❌ deps-builder stage failed"
+            docker build --target ffmpeg-builder -t debug-ffmpeg . || echo "❌ ffmpeg-builder stage failed"
+            exit 1
+          fi
+          
+          echo "📊 Docker build results:"
+          docker images | grep zeroffmpeg
 
-      - name: 🔧 Setup environment
+      - name: 📤 Extract binaries from Docker
         run: |
-          echo "🔧 =============== SETTING UP ENVIRONMENT ==============="
-          # Set up sysroot directories with proper permissions
-          echo "📁 Creating sysroot directories..."
-          sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
-          sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
-          sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig
-          sudo chmod -R 777 /usr/xcc/armv6-unknown-linux-gnueabihf
-
-          # Set up pkg-config
-          echo "📦 Setting up pkg-config..."
-          export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
-          export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
-          export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
-
-          # Debug information
-          echo "🔍 =============== SYSTEM INFORMATION ==============="
-          echo "🖥️  System: $(uname -m)"
-          echo "🔧 Compiler: $(${CROSS_COMPILE}gcc --version | head -1)"
-          echo "📦 PKG-Config: $(pkg-config --version)"
-          echo "✅ Environment setup complete"
-
-      - name: 🏗️  Make build script executable
-        run: |
-          echo "🏗️  Preparing build script..."
-          chmod +x build_ffmpeg.sh
-          echo "✅ Build script ready"
-
-      - name: ⚙️  Run cross-compilation
-        run: |
-          echo "⚙️  =============== STARTING CROSS-COMPILATION ==============="
-          export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
-          export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
-          export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
-          ./build_ffmpeg.sh
+          echo "📤 =============== EXTRACTING BINARIES ==============="
+          
+          # First, let's see if the Docker build was successful
+          echo "🔍 Checking Docker images:"
+          docker images | grep zeroffmpeg || echo "❌ No zeroffmpeg image found"
+          
+          # Create temporary container and check its contents
+          echo "🔍 Inspecting container contents:"
+          docker create --name temp-zeroffmpeg zeroffmpeg:latest
+          echo "📁 Container root directory:"
+          docker exec temp-zeroffmpeg ls -la / 2>/dev/null || docker run --rm zeroffmpeg:latest ls -la /
+          
+          # Try to extract binaries
+          mkdir -p install/bin
+          echo "📤 Attempting to extract ffmpeg..."
+          if docker cp temp-zeroffmpeg:/ffmpeg install/bin/ffmpeg 2>/dev/null; then
+            echo "✅ ffmpeg extracted successfully"
+          else
+            echo "❌ Failed to extract ffmpeg from /ffmpeg"
+            echo "🔍 Trying alternative paths..."
+            docker run --rm zeroffmpeg:latest find / -name "ffmpeg" -type f 2>/dev/null || echo "No ffmpeg found anywhere"
+          fi
+          
+          echo "📤 Attempting to extract ffprobe..."
+          if docker cp temp-zeroffmpeg:/ffprobe install/bin/ffprobe 2>/dev/null; then
+            echo "✅ ffprobe extracted successfully"
+          else
+            echo "⚠️  ffprobe not found"
+            docker run --rm zeroffmpeg:latest find / -name "ffprobe" -type f 2>/dev/null || echo "No ffprobe found anywhere"
+          fi
+          
+          # Clean up
+          docker rm temp-zeroffmpeg
+          
+          # Make binaries executable if they exist
+          if [ -f install/bin/ffmpeg ]; then
+            chmod +x install/bin/ffmpeg
+            echo "✅ Made ffmpeg executable"
+          fi
+          if [ -f install/bin/ffprobe ]; then
+            chmod +x install/bin/ffprobe
+            echo "✅ Made ffprobe executable"
+          fi
+          
+          echo "📊 Final extraction results:"
+          ls -la install/bin/ || echo "❌ install/bin directory is empty"
 
       - name: 🧪 Verify build artifacts
         run: |
@@ -87,7 +88,7 @@ jobs:
             echo "📊 Binary size: $(ls -lh install/bin/ffmpeg | awk '{print $5}')"
             echo "🏗️  Architecture: $(file install/bin/ffmpeg | grep -o 'ARM.*')"
             echo "🔍 ELF Header info:"
-            ${CROSS_COMPILE}readelf -h install/bin/ffmpeg | grep -E "(Class|Machine|Entry)"
+            readelf -h install/bin/ffmpeg | grep -E "(Class|Machine|Entry)" || echo "📋 ELF info not available"
             echo "🔗 Dependencies check:"
             ldd install/bin/ffmpeg 2>/dev/null && echo "⚠️  Dynamic linking detected" || echo "✅ Static binary confirmed"
           else
