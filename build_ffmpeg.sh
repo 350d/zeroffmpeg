@@ -32,6 +32,9 @@ export STRIP=${CROSS_PREFIX}strip
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
 # pkg-config for ARM multiarch
+export PKG_CONFIG=pkg-config
+export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
+export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
