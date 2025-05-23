@@ -41,9 +41,11 @@ jobs:
 
       - name: Setup environment
         run: |
-          # Set up sysroot directories
-          mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/{lib,include,lib/pkgconfig}
-          chmod -R 777 /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
+          # Set up sysroot directories with proper permissions
+          sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
+          sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
+          sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig
+          sudo chmod -R 777 /usr/xcc/armv6-unknown-linux-gnueabihf
 
           # Copy OpenSSL files to sysroot
           cp -r /usr/include/openssl /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/
@@ -57,7 +59,7 @@ jobs:
           export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
           # Create OpenSSL pkg-config files
-                    cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/openssl.pc << EOF
+          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/openssl.pc << EOF
           prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
           exec_prefix=\${prefix}
           libdir=\${prefix}/lib
