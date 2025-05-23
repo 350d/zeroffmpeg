@@ -1,81 +1,60 @@
-name: Build FFmpeg for Pi Zero v7.0
+name: Build FFmpeg for Pi Zero v7.1
 
-on: [workflow_dispatch]
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'build-ffmpeg.sh'
+      - '.github/workflows/build-ffmpeg.yml'
+      - 'ffmpeg/**'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: dockcross/linux-armv6:latest
+    env:
+      PKG_CONFIG_ALL_STATIC: "1"
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Download dockcross wrapper
+      - name: Add armhf architecture & update apt cache
         run: |
-          docker run --rm dockcross/linux-armv6 > ./dockcross
-          chmod +x ./dockcross
+          dpkg --add-architecture armhf
+          apt-get update
 
-      - name: Enable armhf & add only Debian Bookworm armhf repos
+      - name: Install build dependencies for static ARMv6
         run: |
-          # 1) Устанавливаем gnupg и официальный ключ Debian
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gnupg debian-archive-keyring
+          apt-get install -y \
+            libc6-dev:armhf \
+            pkg-config \
+            libv4l-dev:armhf \
+            libdrm-dev:armhf \
+            libgnutls28-dev:armhf \
+            zlib1g-dev:armhf \
+            libalsa-dev:armhf \
+            libx264-dev:armhf \
+            libopus-dev:armhf \
+            libogg-dev:armhf \
+            libvorbis-dev:armhf \
+            libmp3lame-dev:armhf
 
-          # 2) Подключаем архитектуру armhf
-          sudo dpkg --add-architecture armhf
-
-          # 3) Удаляем все системные списки и Mirrorlist
-          sudo rm -f /etc/apt/apt-mirrors.txt
-          sudo rm -f /etc/apt/sources.list
-          sudo rm -vf /etc/apt/sources.list.d/*.list
-
-          # 4) Создаём чистый список только для Debian Bookworm armhf
-          KEYRING=/usr/share/keyrings/debian-archive-keyring.gpg
-          cat <<EOF | sudo tee /etc/apt/sources.list.d/bookworm-armhf.list
-          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm         main
-          deb [arch=armhf signed-by=${KEYRING}] http://deb.debian.org/debian           bookworm-updates main
-          deb [arch=armhf signed-by=${KEYRING}] http://security.debian.org/debian-security bookworm-security main
-          EOF
-
-          # 5) Обновляем индексы — теперь будут только armhf из Debian Bookworm
-          sudo apt-get update
-
-      - name: Fetch & unpack ARMHF dev packages
-        run: |
-          SYSROOT=$PWD/sysroot
-          mkdir -p "$SYSROOT"
-
-          PKGS=(
-            libc6-dev:armhf
-            zlib1g-dev:armhf
-            libssl-dev:armhf
-            libdrm-dev:armhf
-            libv4l-dev:armhf
-            libx264-dev:armhf
-            libjpeg-dev:armhf
-            libpng-dev:armhf
-          )
-
-          # Скачиваем deb-файлы без установки
-          sudo apt-get install --yes --download-only "${PKGS[@]}"
-
-          # Распаковываем их в sysroot
-          for D in /var/cache/apt/archives/*.deb; do
-            dpkg-deb -x "$D" "$SYSROOT"
-          done
-
-      - name: Prep build script
-        run: chmod +x build_ffmpeg.sh
-
-      - name: Build inside dockcross
-        run: |
-          ./dockcross bash -lc "\
-            export SYSROOT=/work/sysroot && \
-            ./build_ffmpeg.sh\
-          "
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Set up QEMU emulation
+        uses: docker/setup-qemu-action@v3
         with:
-          name: ffmpeg-armv6
-          path: ffmpeg-armv6.tar.gz
+          platforms: arm
+
+      - name: Make build script executable
+        run: chmod +x build-ffmpeg.sh
+
+      - name: Run cross-compilation (static)
+        run: ./build-ffmpeg.sh
+
+      - name: Upload static build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ffmpeg-armv6-static
+          path: build/install/bin

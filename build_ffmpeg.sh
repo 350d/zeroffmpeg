@@ -1,65 +1,78 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-###############################################################################
-# Paths
-###############################################################################
-PREFIX="/usr/local"             # where 'make install' will go inside the container
-SYSROOT="${SYSROOT:-/work/sysroot}"
+# Debug: print environment information
+echo "=== Environment ==="
+env
+echo "=== PATH ==="
+echo "$PATH"
+echo "=== GCC version ==="
+gcc --version
+echo "=== pkg-config version ==="
+pkg-config --version
 
-###############################################################################
-# Ensure pkg-config will look in your ARMHF sysroot
-###############################################################################
-export PKG_CONFIG_PATH="$SYSROOT/usr/lib/arm-linux-gnueabihf/pkgconfig"
+# Static build flags
+export PKG_CONFIG_ALL_STATIC=1
+export PKG_CONFIG_FLAGS="--static"
 
-###############################################################################
-# Clone FFmpeg if needed
-###############################################################################
-if [ ! -d ffmpeg ]; then
-  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
-fi
-cd ffmpeg
+# Set architecture flags for ARMv6 hard-float
+ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
+export CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert gnutls)"
+export LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
 
-###############################################################################
-# Configure
-###############################################################################
-./configure \
-  --enable-cross-compile \
-  --cross-prefix=armv6-unknown-linux-gnueabihf- \
-  --cc=armv6-unknown-linux-gnueabihf-gcc \
-  --arch=arm --cpu=arm1176jzf-s --target-os=linux \
-  --sysroot="$SYSROOT" \
+# pkg-config for ARM
+export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
+export PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig
+
+# Define installation prefix
+PREFIX="$(pwd)/install"
+
+# Create build directory
+mkdir -p build
+cd build
+
+# Configure FFmpeg for fully static ARMv6 build
+bash -x ../configure \
   --prefix="$PREFIX" \
-  \
-  --enable-protocol=http,https,tls,tcp,udp,file,rtp \
-  --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
-  --enable-parser=h264,mjpeg \
-  --enable-decoder=h264,mjpeg \
-  --enable-encoder=mjpeg,libx264 \
-  --enable-muxer=mjpeg,mp4,image2,null \
-  --enable-bsf=mjpeg2jpeg \
-  --enable-filter=showinfo,scale,format,colorspace \
-  --enable-indev=lavfi \
-  \
-  --enable-libx264 \
-  --enable-libv4l2 \
-  --enable-libdrm \
-  --enable-openssl \
-  --enable-zlib \
+  --cross-prefix=arm-linux-gnueabihf- \
+  --arch=arm \
+  --cpu=arm1176jzf-s \
+  --target-os=linux \
+  --disable-runtime-cpudetect \
+  --enable-static \
+  --disable-shared \
+  --pkg-config-flags="$PKG_CONFIG_FLAGS" \
+  --disable-everything \
   --enable-gpl \
   --enable-version3 \
-  \
-  --disable-doc \
-  --disable-debug
+  --enable-protocol=http \
+  --enable-protocol=https \
+  --enable-protocol=tls \
+  --enable-protocol=tcp \
+  --enable-protocol=udp \
+  --enable-protocol=file \
+  --enable-protocol=rtp \
+  --enable-demuxer=rtp,rtsp \
+  --enable-demuxer=h264 --enable-parser=h264 --enable-decoder=h264 \
+  --enable-demuxer=mjpeg --enable-parser=mjpeg --enable-decoder=mjpeg \
+  --enable-encoder=mjpeg --enable-muxer=mjpeg \
+  --enable-bsf=mjpeg2jpeg \
+  --enable-indev=lavfi \
+  --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
+  --enable-muxer=mp4,null \
+  --enable-encoder=libx264,rawvideo --enable-libx264 \
+  --enable-libv4l2 --enable-libdrm --enable-zlib --enable-gnutls \
+  --enable-indev=alsa --enable-encoder=aac \
+  --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
+  --enable-parser=aac,mpegaudio,vorbis,opus \
+  --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
+  --enable-demuxer=image2,image2pipe --enable-muxer=image2 \
+  --disable-doc --disable-debug \
+  --extra-cflags="$CFLAGS" \
+  --extra-ldflags="$LDFLAGS"
 
-###############################################################################
-# Build & Install
-###############################################################################
-make -j$(nproc)
+# Build and install
+make -j"$(nproc)"
 make install
 
-###############################################################################
-# Package up the result
-###############################################################################
-cd "$PREFIX"
-tar czf /work/ffmpeg-armv6.tar.gz .
+echo "Static build complete. Binaries are in $PREFIX/bin"
