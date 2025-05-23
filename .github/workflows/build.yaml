@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v7.9
+name: Build FFmpeg for Pi Zero
 
 on: [workflow_dispatch]
 
@@ -7,44 +7,34 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: dockcross/linux-armv6:latest
-    env:
-      PKG_CONFIG_ALL_STATIC: "1"
+      options: --platform linux/amd64  # Ensure container runs on x86_64
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Add armhf architecture & update apt cache
+      - name: Setup environment
         run: |
-          dpkg --add-architecture armhf
-          apt-get update
-
-      - name: Install build dependencies for static ARMv6
-        run: |
-          apt-get install -y \
-            libc6-dev:armhf \
-            mercurial autoconf automake libtool pkg-config git gcc g++ make \
-            libc6-dev:armhf \
-            libv4l-dev:armhf \
-            libdrm-dev:armhf \
-            libssl-dev:armhf \
-            zlib1g-dev:armhf \
-            libasound2-dev:armhf \
-            libx264-dev:armhf \
-            libopus-dev:armhf \
-            libogg-dev:armhf \
-            libvorbis-dev:armhf \
-            libmp3lame-dev:armhf \
-            libjpeg-dev:armhf 
+          echo "Checking environment..."
+          uname -a
+          ${CROSS_COMPILE}gcc --version
+          pkg-config --version
 
       - name: Make build script executable
         run: chmod +x build_ffmpeg.sh
 
-      - name: Run cross-compilation (static)
+      - name: Run cross-compilation
         run: ./build_ffmpeg.sh
 
-      - name: Upload static build artifacts
+      - name: Check build artifacts
+        run: |
+          ls -la install/bin/
+          file install/bin/ffmpeg
+          ${CROSS_COMPILE}readelf -h install/bin/ffmpeg
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6-static
-          path: build/install/bin
+          path: install/bin/
+          if-no-files-found: error
