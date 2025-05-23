@@ -11,7 +11,7 @@ ${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}gcc --version
 echo "=== pkg-config version ==="
 pkg-config --version
 
-# Enable fully static build via pkg-config
+# Enable fully static build
 export PKG_CONFIG_ALL_STATIC=1
 export PKG_CONFIG_FLAGS="--static"
 echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
@@ -31,27 +31,24 @@ export STRIP=${CROSS_PREFIX}strip
 # ARCH flags for ARMv6 hard-float
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
-# Set pkg-config for ARM multiarch
+# pkg-config for ARM multiarch
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
-# Compute CFLAGS and LDFLAGS for all external libs
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags \
-  libv4l2 libv4lconvert openssl libdrm libx264 zlib libmp3lame libopus libogg libvorbis libjpeg)"
+# Compute CFLAGS and LDFLAGS for all external libs using correct pkg-config names
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib libmp3lame opus ogg vorbis libjpeg)"
 echo "CFLAGS=$CFLAGS"
-
-LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs \
-  libv4l2 libv4lconvert openssl libdrm libx264 zlib libmp3lame libopus libogg libvorbis libjpeg) -static"
+LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib libmp3lame opus ogg vorbis libjpeg) -static"
 echo "LDFLAGS=$LDFLAGS"
 
-# Clone latest FFmpeg if missing
+# Clone latest FFmpeg from Git if missing
 SRC_DIR="ffmpeg"
 if [ ! -d "$SRC_DIR" ]; then
-  echo "Cloning latest FFmpeg from Git..."
+  echo "Cloning FFmpeg from Git..."
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$SRC_DIR"
 fi
 
-# Prepare build dir
+# Prepare build directory
 PREFIX="$(pwd)/install"
 mkdir -p build && cd build
 
