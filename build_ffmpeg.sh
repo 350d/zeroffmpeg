@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Debug: environment info
+# 1) Debug: среда
 echo "=== Environment ==="
 env | sort
-
 echo "=== GCC version ==="
 ${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}gcc --version
-
-echo "=== pkg-config version (host) ==="
+echo "=== pkg-config (host) version ==="
 pkg-config --version
 
-# Enable fully static build
+# 2) Флаги статической сборки
 export PKG_CONFIG_ALL_STATIC=1
 export PKG_CONFIG_FLAGS="--static"
 echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
 echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
 
-# Toolchain prefixes
+# 3) Настройка кросс-компилятора
 CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
 echo "Using cross-prefix: $CROSS_PREFIX"
 export CC=${CROSS_PREFIX}gcc
@@ -28,45 +26,51 @@ export NM=${CROSS_PREFIX}nm
 export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
-# Create cross-`pkg-config` wrapper
-toolchain_bin=$(dirname "$CC")
-cat > "$toolchain_bin/${CROSS_PREFIX}pkg-config" << 'EOF'
-#!/usr/bin/env bash
-# Ensure ARM .pc files are found
-export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
-export PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig
-exec pkg-config "$@"
-EOF
-chmod +x "$toolchain_bin/${CROSS_PREFIX}pkg-config"
-export PKG_CONFIG="$toolchain_bin/${CROSS_PREFIX}pkg-config"
-# Prepend wrapper to PATH so configure picks it up
-export PATH="$toolchain_bin:$PATH"
-echo "Wrapper PKG_CONFIG=$PKG_CONFIG"
+# 4) Собираем v4l-utils статически
+echo "=== Build static v4l-utils ==="
+V4L_SRC=v4l-utils
+V4L_INSTALL=$(pwd)/v4l-install
+if [ ! -d "$V4L_SRC" ]; then
+  echo "Cloning v4l-utils (Mercurial)…"
+  hg clone https://linuxtv.org/hg/v4l-utils "$V4L_SRC"
+fi
+cd "$V4L_SRC"
+autoreconf -fvi
+HOST_TRIPLE=${CROSS_PREFIX%-}
+./configure \
+  --host="$HOST_TRIPLE" \
+  --prefix="$V4L_INSTALL" \
+  --disable-shared \
+  --enable-static \
+  --disable-tools
+make -j"$(nproc)"
+make install
+cd ..
 
-# ARCH flags for ARMv6 hard-float
+# 5) Настраиваем pkg-config
+export PKG_CONFIG_PATH="$V4L_INSTALL/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
+echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+
+# 6) Собираем FFmpeg статически
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
-echo "Computing CFLAGS and LDFLAGS..."
-# Compute flags for all external libs
-CFLAGS="$ARCH_FLAGS $($PKG_CONFIG $PKG_CONFIG_FLAGS --cflags \
-  libv4l2 libv4lconvert openssl libdrm x264 zlib)"
+echo "=== Computing CFLAGS/LDFLAGS ==="
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis)"
 echo "CFLAGS=$CFLAGS"
-LDFLAGS="$($PKG_CONFIG $PKG_CONFIG_FLAGS --libs \
-  libv4l2 libv4lconvert openssl libdrm x264 zlib) -static"
+LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis) -static"
 echo "LDFLAGS=$LDFLAGS"
 
-# Clone latest FFmpeg from Git if missing
-FFMPEG_SRC="ffmpeg"
+# 7) Клонируем FFmpeg из Git, если нужно
+FFMPEG_SRC=ffmpeg
 if [ ! -d "$FFMPEG_SRC" ]; then
-  echo "Cloning latest FFmpeg from Git..."
+  echo "Cloning latest FFmpeg…"
   git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
-# Prepare build directory
+# 8) Конфигурация и сборка FFmpeg
 PREFIX="$(pwd)/install"
 mkdir -p build && cd build
 
-echo "Configuring FFmpeg..."
 bash -x ../$FFMPEG_SRC/configure \
   --prefix="$PREFIX" \
   --cross-prefix=$CROSS_PREFIX \
@@ -87,6 +91,9 @@ bash -x ../$FFMPEG_SRC/configure \
   --enable-libdrm \
   --enable-libx264 \
   --enable-zlib \
+  --enable-libmp3lame \
+  --enable-libopus \
+  --enable-libvorbis \
   --enable-protocol=http,https,tls,tcp,udp,file \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
   --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
@@ -99,9 +106,8 @@ bash -x ../$FFMPEG_SRC/configure \
   --extra-cflags="$CFLAGS" \
   --extra-ldflags="$LDFLAGS"
 
-# Build & install
-echo "Building FFmpeg..."
+echo "=== Building FFmpeg… ==="
 make -j"$(nproc)"
 make install
 
-echo "Fully static build complete. Binaries in $PREFIX/bin"
+echo "Static FFmpeg build complete. Binaries in $PREFIX/bin"

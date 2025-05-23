@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v7.8
+name: Build FFmpeg for Pi Zero v7.9
 
 on: [workflow_dispatch]
 
@@ -23,9 +23,8 @@ jobs:
         run: |
           apt-get install -y \
             libc6-dev:armhf \
-            pkg-config \
+            mercurial autoconf automake libtool pkg-config git gcc g++ make \
             libc6-dev:armhf \
-            pkg-config \
             libv4l-dev:armhf \
             libdrm-dev:armhf \
             libssl-dev:armhf \
