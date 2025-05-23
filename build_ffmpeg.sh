@@ -62,6 +62,15 @@ if [ ! -d "x264" ]; then
     git clone --depth 1 https://code.videolan.org/videolan/x264.git
 fi
 cd x264
+
+# Clean any previous builds
+make clean || true
+make distclean || true
+
+# Configure x264 with proper paths and flags
+PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
+PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
+PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
 ./configure \
     --cross-prefix=${CROSS_COMPILE} \
     --host=arm-linux-gnueabihf \
@@ -71,43 +80,55 @@ cd x264
     --disable-thread \
     --disable-asm \
     --extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
-    --prefix="$SYSROOT/usr"
-make clean || true
+    --prefix="$SYSROOT/usr" \
+    --libdir="$SYSROOT/usr/lib" \
+    --includedir="$SYSROOT/usr/include"
+
 make -j"$(nproc)" V=1
 make install
 
-# Create x264.pc manually
+# Create x264.pc with absolute paths
 cat > "$PKG_CONFIG_DIR/x264.pc" << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
-libdir=\${prefix}/lib
-includedir=\${prefix}/include
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
 
 Name: x264
 Description: x264 library
 Version: 0.164.x
 Requires:
 Libs: -L\${libdir} -lx264
-Libs.private: -lpthread
+Libs.private: -lpthread -lm
 Cflags: -I\${includedir}
 EOF
 
-echo "=== Verifying x264.pc ==="
+echo "=== Verifying x264 installation ==="
+echo "Checking x264.pc contents:"
 cat "$PKG_CONFIG_DIR/x264.pc"
+echo "Checking x264 library:"
+ls -la "$SYSROOT/usr/lib/libx264*" || echo "No x264 libraries found"
+echo "Checking x264 headers:"
+ls -la "$SYSROOT/usr/include/x264*" || echo "No x264 headers found"
+echo "Checking pkg-config directory:"
 ls -la "$PKG_CONFIG_DIR"
 
-# Test pkg-config with x264
+# Test pkg-config with x264 more thoroughly
 echo "=== Testing pkg-config with x264 ==="
-echo "PKG_CONFIG command: $PKG_CONFIG"
-echo "Testing x264 package:"
 if [ "$PKG_CONFIG" != "false" ]; then
-    $PKG_CONFIG --exists x264 2>/dev/null && echo "x264 package found" || echo "x264 package NOT found"
-    $PKG_CONFIG --cflags x264 2>/dev/null || echo "Failed to get cflags"
-    $PKG_CONFIG --libs x264 2>/dev/null || echo "Failed to get libs"
+    echo "PKG_CONFIG=$PKG_CONFIG"
+    echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+    echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
+    echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
+    
+    echo "Testing x264 package existence:"
+    $PKG_CONFIG --exists x264 2>&1 || echo "x264 package not found"
+    echo "Testing x264 cflags:"
+    $PKG_CONFIG --cflags x264 2>&1 || echo "Failed to get cflags"
+    echo "Testing x264 libs:"
+    $PKG_CONFIG --libs x264 2>&1 || echo "Failed to get libs"
     echo "Available packages:"
-    $PKG_CONFIG --list-all 2>/dev/null | grep x264 || echo "No x264 in package list"
-else
-    echo "pkg-config not available"
+    $PKG_CONFIG --list-all 2>&1 | grep x264 || echo "No x264 in package list"
 fi
 
 cd ..

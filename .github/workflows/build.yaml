@@ -29,7 +29,8 @@ jobs:
             libx264-dev \
             libv4l-dev \
             libdrm-dev \
-            libgnutls28-dev
+            libgnutls28-dev \
+            ccache build-essential cmake git libjpeg-dev libssl-dev
 
       - name: Setup environment
         run: |
@@ -46,6 +47,11 @@ jobs:
           ls -la
           echo "=== Cross Compiler Directory ==="
           ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/
+          echo "=== Sysroot Directory ==="
+          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
+          echo "=== PKG Config Directory ==="
+          mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/
+          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/
 
       - name: Make build script executable
         run: |
@@ -54,7 +60,11 @@ jobs:
           chmod 777 /usr/local/lib/pkgconfig
 
       - name: Run cross-compilation
-        run: ./build_ffmpeg.sh
+        run: |
+          export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
+          export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
+          export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+          ./build_ffmpeg.sh
 
       - name: Check build artifacts
         run: |
