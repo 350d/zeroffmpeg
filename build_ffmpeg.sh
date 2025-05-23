@@ -33,7 +33,7 @@ fi
 cd ffmpeg
 
 # Configure FFmpeg for fully static ARMv6 build
-bash -x ../configure \
+bash -x ./configure \
   --prefix="$PREFIX" \
   --cross-prefix=arm-linux-gnueabihf- \
   --arch=arm \
