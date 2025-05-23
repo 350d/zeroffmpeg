@@ -40,8 +40,8 @@ export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
 # Compute CFLAGS and extra ldflags
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert gnutls)"
-EXTRA_LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl)"
+EXTRA_LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl) -static"
 echo "CFLAGS=$CFLAGS"
 echo "EXTRA_LDFLAGS=$EXTRA_LDFLAGS"
 
