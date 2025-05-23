@@ -29,10 +29,29 @@ export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
 # Create cross-pkg-config wrapper so configure finds ARM .pc files
+# This wrapper will fake libv4l2/libv4lconvert flags since no .pc provided by libv4l-dev
 toolchain_bin=$(dirname "$CC")
 cat > "$toolchain_bin/${CROSS_PREFIX}pkg-config" << 'EOF'
 #!/usr/bin/env bash
+# Set pkg-config paths
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
+# Intercept libv4l2 detection
+if [[ "$@" == *libv4l2* ]]; then
+  case "$1" in
+    --exists|--modversion)
+      exit 0
+      ;;
+    --cflags)
+      echo "-I/usr/include"
+      exit 0
+      ;;
+    --libs)
+      echo "-L/usr/lib/arm-linux-gnueabihf -lv4l2 -lv4lconvert"
+      exit 0
+      ;;
+  esac
+fi
+# Fallback to real pkg-config for other libs
 exec pkg-config "$@"
 EOF
 chmod +x "$toolchain_bin/${CROSS_PREFIX}pkg-config"
