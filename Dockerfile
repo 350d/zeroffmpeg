@@ -45,16 +45,6 @@ RUN echo "🗜️ Building zlib..." && \
 	CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 	./configure --prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr --static && \
 	make -j$(nproc) && make install && \
-	echo 'prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-exec_prefix=${prefix}
-libdir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
-includedir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
-
-Name: zlib
-Description: zlib compression library
-Version: 1.2.13
-Libs: -L${libdir} -lz
-Cflags: -I${includedir}' > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/zlib.pc && \
 	rm -rf /tmp/zlib
 
 # 🔐 Build OpenSSL (cache this, it rarely changes)
@@ -75,29 +65,6 @@ RUN echo "🔐 Building OpenSSL..." && \
 	sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile && \
 	sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile && \
 	make -j$(nproc) build_libs && make install_dev && \
-	# Create pkg-config files
-	echo 'prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-exec_prefix=${prefix}
-libdir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
-includedir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
-
-Name: OpenSSL-libssl
-Description: Secure Sockets Layer and cryptography libraries - libssl
-Version: 1.1.1
-Requires: libcrypto
-Libs: -L${libdir} -lssl
-Cflags: -I${includedir}' > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
-	echo 'prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-exec_prefix=${prefix}
-libdir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
-includedir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
-
-Name: OpenSSL-libcrypto
-Description: OpenSSL cryptography library
-Version: 1.1.1
-Libs: -L${libdir} -lcrypto
-Libs.private: -ldl -pthread
-Cflags: -I${includedir}' > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	rm -rf /tmp/openssl
 
 # 🎬 Build x264 (cache this, it rarely changes)
@@ -118,18 +85,6 @@ RUN echo "🎬 Building x264..." && \
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr && \
 	make -j$(nproc) && make install && \
-	echo 'prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-exec_prefix=${prefix}
-libdir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib
-includedir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include
-
-Name: x264
-Description: x264 library
-Version: 0.164.x
-Requires:
-Libs: -L${libdir} -lx264
-Libs.private: -lpthread -lm
-Cflags: -I${includedir}' > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/x264.pc && \
 	rm -rf /tmp/x264
 
 # ============================================================================
@@ -147,9 +102,6 @@ RUN echo "🎥 Building FFmpeg with pre-built dependencies..." && \
 	mkdir -p /tmp/install && \
 	mkdir -p build && cd build && \
 	echo "⚙️  Configuring FFmpeg..." && \
-	PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" \
-	PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" \
-	PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" \
 	/tmp/ffmpeg/configure \
 		--prefix="/tmp/install" \
 		--cross-prefix=armv6-unknown-linux-gnueabihf- \
@@ -179,9 +131,7 @@ RUN echo "🎥 Building FFmpeg with pre-built dependencies..." && \
 		--enable-bsf=mjpeg2jpeg \
 		--enable-indev=lavfi \
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
-		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib -lssl -lcrypto" \
-		--pkg-config=pkg-config \
-		--pkg-config-flags="--static" \
+		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib -lx264 -lssl -lcrypto -lz -lpthread -lm -ldl" \
 		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" && \
 	echo "⏳ Building FFmpeg..." && \
 	make -j$(nproc) && \
