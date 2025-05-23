@@ -88,6 +88,10 @@ PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
 ./configure \
     --cross-prefix=${CROSS_COMPILE} \
     --host=arm-linux-gnueabihf \
+    --cc="${CC}" \
+    --ar="${AR}" \
+    --ranlib="${RANLIB}" \
+    --strip="${STRIP}" \
     --enable-static \
     --disable-cli \
     --disable-opencl \
