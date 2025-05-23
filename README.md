@@ -116,7 +116,7 @@ This is a production example used for **security monitoring** with IP cameras. I
   -skip_frame nokey -max_delay 0 -flags low_delay \
   -rtsp_transport udp -buffer_size 512k \
   -hwaccel videotoolbox -r 1 \
-  -i rtsp://192.168.3.87:9999/unicast \
+  -i rtsp://127.0.0.1:9999/unicast \
   -pix_fmt yuv420p -color_range mpeg -strict -1 -an -threads 1 \
   -filter_complex "[0:v]fps=1,scale=640:-1:flags=fast_bilinear,split=2[snap][diff]; \
     [diff]tblend=all_mode=difference,blackframe=0.02:32[diffout]" \
@@ -147,7 +147,7 @@ This is a production example used for **security monitoring** with IP cameras. I
 ### 🔍 What This Example Does:
 
 #### 📡 **RTSP Stream Processing**
-- Connects to IP camera via RTSP (UDP transport for low latency)
+- Connects to local H264 stream (served by v4l2rtspserver)via RTSP
 - Optimized for minimal buffering and instant processing
 - Handles 1 FPS for efficient monitoring
 
