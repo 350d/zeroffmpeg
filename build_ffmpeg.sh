@@ -32,7 +32,7 @@ V4L_SRC=v4l-utils
 V4L_INSTALL=$(pwd)/v4l-install
 if [ ! -d "$V4L_SRC" ]; then
   echo "Cloning v4l-utils (Mercurial)…"
-   git clone --depth 1 https://github.com/gjasny/v4l-utils.git "$V4L_SRC"
+  hg clone https://linuxtv.org/hg/v4l-utils "$V4L_SRC"
 fi
 cd "$V4L_SRC"
 autoreconf -fvi
