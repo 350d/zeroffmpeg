@@ -55,9 +55,9 @@ echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
 echo "=== Computing CFLAGS/LDFLAGS ==="
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis)"
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib)"
 echo "CFLAGS=$CFLAGS"
-LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis) -static"
+LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib) -static"
 echo "LDFLAGS=$LDFLAGS"
 
 # 7) Клонируем FFmpeg из Git, если нужно
@@ -91,9 +91,6 @@ bash -x ../$FFMPEG_SRC/configure \
   --enable-libdrm \
   --enable-libx264 \
   --enable-zlib \
-  --enable-libmp3lame \
-  --enable-libopus \
-  --enable-libvorbis \
   --enable-protocol=http,https,tls,tcp,udp,file \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
   --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
