@@ -75,10 +75,6 @@ echo "AR=$AR"
 echo "RANLIB=$RANLIB"
 echo "STRIP=$STRIP"
 
-# Clean any previous builds (now with proper CC set)
-make clean || true
-make distclean || true
-
 # Ensure directories exist with proper permissions
 sudo mkdir -p "$SYSROOT/usr/lib"
 sudo mkdir -p "$SYSROOT/usr/include"
@@ -94,10 +90,6 @@ PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
 ./configure \
     --cross-prefix=${CROSS_COMPILE} \
     --host=arm-linux-gnueabihf \
-    --cc="${CC}" \
-    --ar="${AR}" \
-    --ranlib="${RANLIB}" \
-    --strip="${STRIP}" \
     --enable-static \
     --disable-cli \
     --disable-opencl \
