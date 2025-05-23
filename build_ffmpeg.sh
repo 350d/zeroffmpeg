@@ -27,9 +27,10 @@ export PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig
 # Define installation prefix
 PREFIX="$(pwd)/install"
 
-# Create build directory
-mkdir -p build
-cd build
+if [ ! -d ffmpeg ]; then
+  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
+fi
+cd ffmpeg
 
 # Configure FFmpeg for fully static ARMv6 build
 bash -x ../configure \
