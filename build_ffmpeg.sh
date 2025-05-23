@@ -322,6 +322,7 @@ if [ "$PKG_CONFIG" != "false" ]; then
         --extra-cflags="$EXTRA_CFLAGS" \
         --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
         --pkg-config="$PKG_CONFIG" \
+        --pkg-config-flags="--static" \
         --sysroot="$SYSROOT"
 else
     # Configure without pkg-config
@@ -373,6 +374,7 @@ else
         --enable-muxer=image2 \
         --extra-cflags="$EXTRA_CFLAGS" \
         --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
+        --pkg-config-flags="--static" \
         --sysroot="$SYSROOT"
 fi
 
