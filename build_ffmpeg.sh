@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+# Setup cross-compilation environment
+export CROSS_COMPILE=${CROSS_COMPILE:-"armv6-unknown-linux-gnueabihf-"}
+export SYSROOT=${SYSROOT:-"/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"}
+export PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/bin:$PATH"
+
+# Verify cross-compiler is available
+if ! command -v "${CROSS_COMPILE}gcc" >/dev/null 2>&1; then
+    echo "Error: Cross compiler ${CROSS_COMPILE}gcc not found in PATH"
+    exit 1
+fi
+
 # 1) Debug: environment info
 echo "=== Environment ==="
 env | sort
@@ -12,16 +23,22 @@ ls -la
 
 # 2) Setup pkg-config for cross-compilation
 echo "=== Setting up pkg-config ==="
-PKG_CONFIG_DIR="/usr/local/lib/pkgconfig"
+PKG_CONFIG_DIR="${SYSROOT}/usr/lib/pkgconfig"
 mkdir -p "$PKG_CONFIG_DIR"
 
 export PKG_CONFIG_PATH="$PKG_CONFIG_DIR"
 export PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR"
-export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+
+# Ensure library paths are correct
+export LIBRARY_PATH="$SYSROOT/usr/lib:$SYSROOT/lib"
+export C_INCLUDE_PATH="$SYSROOT/usr/include"
+export CPLUS_INCLUDE_PATH="$SYSROOT/usr/include"
 
 echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
 echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
+echo "LIBRARY_PATH=$LIBRARY_PATH"
 
 # 3) Build x264
 echo "=== Building x264 ==="
