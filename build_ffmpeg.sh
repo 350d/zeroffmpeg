@@ -67,6 +67,12 @@ cd x264
 make clean || true
 make distclean || true
 
+# Export cross-compiler tools for x264 build
+export CC=${CROSS_COMPILE}gcc
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
+
 # Ensure directories exist with proper permissions
 sudo mkdir -p "$SYSROOT/usr/lib"
 sudo mkdir -p "$SYSROOT/usr/include"
@@ -206,6 +212,7 @@ pkg-config --libs x264 2>&1
 # Create a test program to verify x264
 cat > test_x264.c << EOF
 #include <stdint.h>
+#include <stddef.h>
 #include <x264.h>
 int main() {
     x264_param_t param;
