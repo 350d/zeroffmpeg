@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v7.6
+name: Build FFmpeg for Pi Zero v7.7
 
 on: [workflow_dispatch]
 
@@ -33,7 +33,15 @@ jobs:
             libopus-dev:armhf \
             libogg-dev:armhf \
             libvorbis-dev:armhf \
-            libmp3lame-dev:armhf
+            libmp3lame-dev:armhf \
+            libjpeg-dev:armhf \
+            libgmp-dev:armhf \
+            libnettle-dev:armhf \
+            libhogweed-dev:armhf \
+            libtasn1-dev:armhf \
+            libidn2-dev:armhf \
+            libp11-kit-dev:armhf \
+            libunistring-dev:armhf
 
       - name: Make build script executable
         run: chmod +x build_ffmpeg.sh
