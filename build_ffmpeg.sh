@@ -28,37 +28,41 @@ export NM=${CROSS_PREFIX}nm
 export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
+# Create cross-pkg-config wrapper so configure finds ARM .pc files
+toolchain_bin=$(dirname "$CC")
+cat > "$toolchain_bin/${CROSS_PREFIX}pkg-config" << 'EOF'
+#!/usr/bin/env bash
+export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
+exec pkg-config "$@"
+EOF
+chmod +x "$toolchain_bin/${CROSS_PREFIX}pkg-config"
+
 # ARCH flags for ARMv6 hard-float
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
-# pkg-config for ARM multiarch
-export PKG_CONFIG=pkg-config
-export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
-export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
-export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
-export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
+echo "PKG_CONFIG=$toolchain_bin/${CROSS_PREFIX}pkg-config"
 
-# Compute CFLAGS using correct pkg-config names
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib)"
+echo "Computing CFLAGS and LDFLAGS..."
+# Compute flags for external libs
+CFLAGS="$ARCH_FLAGS $(${toolchain_bin}/${CROSS_PREFIX}pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis)"
 echo "CFLAGS=$CFLAGS"
-
-# Compute LDFLAGS with static libraries
-LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib) -static"
+LDFLAGS="$(${toolchain_bin}/${CROSS_PREFIX}pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis) -static"
 echo "LDFLAGS=$LDFLAGS"
 
 # Clone latest FFmpeg from Git if missing
-SRC_DIR="ffmpeg"
-if [ ! -d "$SRC_DIR" ]; then
+src_dir="ffmpeg"
+if [ ! -d "$src_dir" ]; then
   echo "Cloning FFmpeg from Git..."
-  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$SRC_DIR"
+  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$src_dir"
 fi
 
 # Prepare build directory
 PREFIX="$(pwd)/install"
 mkdir -p build && cd build
 
-# Configure fully static FFmpeg
-bash -x ../$SRC_DIR/configure \
+echo "Configuring FFmpeg..."
+# Configure static FFmpeg with required components
+bash -x ../$src_dir/configure \
   --prefix="$PREFIX" \
   --cross-prefix=$CROSS_PREFIX \
   --arch=arm \
@@ -78,6 +82,9 @@ bash -x ../$SRC_DIR/configure \
   --enable-libdrm \
   --enable-libx264 \
   --enable-zlib \
+  --enable-libmp3lame \
+  --enable-libopus \
+  --enable-libvorbis \
   --enable-protocol=http,https,tls,tcp,udp,file \
   --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
   --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
@@ -90,7 +97,8 @@ bash -x ../$SRC_DIR/configure \
   --extra-cflags="$CFLAGS" \
   --extra-ldflags="$LDFLAGS"
 
-# Build and install
+# Build & install
+echo "Building FFmpeg..."
 make -j"$(nproc)"
 make install
 
