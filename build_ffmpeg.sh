@@ -27,17 +27,16 @@ export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
 # 4) Build static v4l-utils v1.30.1 for libv4l2
-V4L_VER=v1.30.1
+V4L_TAG="v4l-utils-1.30.1"
 V4L_SRC="v4l-utils"
 V4L_INSTALL="$(pwd)/v4l-install"
 if [ ! -d "$V4L_SRC" ]; then
-  echo "Cloning v4l-utils $V4L_VER..."
-  git clone --depth 1 --branch "$V4L_VER" https://git.linuxtv.org/v4l-utils.git "$V4L_SRC"
+  echo "Cloning v4l-utils $V4L_TAG..."
+  git clone --depth 1 --branch "$V4L_TAG" https://git.linuxtv.org/v4l-utils.git "$V4L_SRC"
 fi
 cd "$V4L_SRC"
-# Generate configure script
-./autogen.sh
-# Configure static library build
+# Run autogen if present
+[ -x autogen.sh ] && ./autogen.sh
 HOST_TRIPLE=${CROSS_PREFIX%-}
 ./configure \
   --host="$HOST_TRIPLE" \
@@ -48,7 +47,7 @@ HOST_TRIPLE=${CROSS_PREFIX%-}
 make -j"$(nproc)"
 make install
 cd ..
- echo "Static v4l-utils installed to $V4L_INSTALL"
+echo "Static v4l-utils installed to $V4L_INSTALL"
 
 # 5) Setup pkg-config to see v4l-install first
 export PKG_CONFIG_PATH="$V4L_INSTALL/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
