@@ -66,8 +66,8 @@ bash -x ./configure \
   --disable-shared \
   --pkg-config-flags="$PKG_CONFIG_FLAGS" \
   --disable-everything \
-  --enable-gpl \
-  --enable-version3 \
+  --enable-gpl --enable-nonfree \
+  --enable-openssl --enable-version3 \
   --enable-protocol=http \
   --enable-protocol=https \
   --enable-protocol=tls \
@@ -84,7 +84,7 @@ bash -x ./configure \
   --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
   --enable-muxer=mp4,null \
   --enable-encoder=libx264,rawvideo --enable-libx264 \
-  --enable-libv4l2 --enable-libdrm --enable-zlib --enable-gnutls \
+  --enable-libv4l2 --enable-zlib \
   --enable-indev=alsa --enable-encoder=aac \
   --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
   --enable-parser=aac,mpegaudio,vorbis,opus \
