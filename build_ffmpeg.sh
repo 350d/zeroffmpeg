@@ -114,19 +114,18 @@ if [ ! -d "openssl" ]; then
 fi
 cd openssl
 
-# Export cross-compiler tools BEFORE configure
-export CC=${CROSS_COMPILE}gcc
-export AR=${CROSS_COMPILE}ar
-export RANLIB=${CROSS_COMPILE}ranlib
-export STRIP=${CROSS_COMPILE}strip
+# Clean any previous builds
+make clean || true
 
-echo "Building OpenSSL with:"
-echo "CC=$CC"
-echo "AR=$AR"
-echo "RANLIB=$RANLIB"
+# Set up cross-compilation with a different approach
+echo "Building OpenSSL with cross-compilation for ARM"
 
-# Configure OpenSSL for ARM using environment variables only
-./Configure linux-armv4 \
+# Configure OpenSSL for ARM using linux-generic32 platform
+CC="${CROSS_COMPILE}gcc" \
+AR="${CROSS_COMPILE}ar" \
+RANLIB="${CROSS_COMPILE}ranlib" \
+STRIP="${CROSS_COMPILE}strip" \
+./Configure linux-generic32 \
     --prefix="$SYSROOT/usr" \
     --openssldir="$SYSROOT/usr/ssl" \
     no-shared \
@@ -134,11 +133,15 @@ echo "RANLIB=$RANLIB"
     no-engine \
     no-unit-test \
     no-ui-console \
+    no-asm \
     -static \
     -march=armv6 \
     -mfpu=vfp \
     -mfloat-abi=hard \
     -Os
+
+echo "=== Checking generated Makefile ==="
+head -20 Makefile | grep -E "CC=|AR=" || echo "No CC/AR found in first 20 lines"
 
 make -j"$(nproc)" build_libs
 sudo make install_dev
