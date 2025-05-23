@@ -36,13 +36,11 @@ export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
 # Compute CFLAGS using correct pkg-config names
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags \
-  libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus ogg vorbis libjpeg)"
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis libjpeg)"
 echo "CFLAGS=$CFLAGS"
 
 # Compute LDFLAGS with static libraries
-LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs \
-  libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus ogg vorbis libjpeg) -static"
+LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl libdrm x264 zlib lame opus vorbis libjpeg) -static"
 echo "LDFLAGS=$LDFLAGS"
 
 # Clone latest FFmpeg from Git if missing
@@ -79,7 +77,6 @@ bash -x ../$SRC_DIR/configure \
   --enable-zlib \
   --enable-libmp3lame \
   --enable-libopus \
-  --enable-libogg \
   --enable-libvorbis \
   --enable-libjpeg \
   --enable-protocol=http,https,tls,tcp,udp,file \
