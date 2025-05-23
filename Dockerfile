@@ -143,8 +143,6 @@ RUN echo "🔒 Building libsrtp2..." && \
 	export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
 	./configure \
 		--host=arm-linux-gnueabihf \
-		--enable-static \
-		--disable-shared \
 		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr >/dev/null && \
 	make -j$(nproc) >/dev/null && make install >/dev/null && \
 	# Create pkg-config file for libsrtp2
@@ -214,12 +212,20 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
 		--pkg-config=pkg-config \
 		--pkg-config-flags="--static" \
-		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" >/dev/null
+		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" || \
+	(echo "❌ FFmpeg configure failed!" && \
+	echo "📋 Config log:" && \
+	tail -50 ffbuild/config.log 2>/dev/null || echo "No config.log found" && \
+	exit 1)
 
 # Build and Install FFmpeg
 RUN echo "⏳ Building FFmpeg..." && \
 	cd build && \
-	make -j$(nproc) >/dev/null && \
+	make -j$(nproc) 2>&1 | tee build.log || \
+	(echo "❌ FFmpeg build failed!" && \
+	echo "📋 Last 50 lines of build log:" && \
+	tail -50 build.log && \
+	exit 1) && \
 	echo "📦 Installing FFmpeg..." && \
 	make install >/dev/null && \
 	echo "✅ FFmpeg build complete!"

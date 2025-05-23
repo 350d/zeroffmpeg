@@ -243,8 +243,6 @@ echo "⏳ Configuring libsrtp2..."
 CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 ./configure \
     --host=arm-linux-gnueabihf \
-    --enable-static \
-    --disable-shared \
     --prefix="$SYSROOT/usr" >/dev/null 2>&1
 
 echo "⏳ Compiling libsrtp2..."
