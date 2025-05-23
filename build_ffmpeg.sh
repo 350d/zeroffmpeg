@@ -37,7 +37,7 @@ V4L_SRC_DIR="v4l-utils"
 V4L_INSTALL_DIR="$(pwd)/v4l-install"
 if [ ! -d "$V4L_SRC_DIR" ]; then
   echo "Cloning v4l-utils for static libv4l build..."
-  git clone --depth 1 https://linuxtv.org/hg/v4l-utils?v=1.20.0 "$V4L_SRC_DIR"
+  git clone --depth 1 https://github.com/gjasny/v4l-utils.git "$V4L_SRC_DIR"
 fi
 cd "$V4L_SRC_DIR"
 # Prepare and configure static build of v4l-utils
