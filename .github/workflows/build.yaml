@@ -48,14 +48,13 @@ jobs:
           ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/
 
       - name: Make build script executable
-        run: chmod +x build_ffmpeg.sh
+        run: |
+          chmod +x build_ffmpeg.sh
+          mkdir -p /usr/local/lib/pkgconfig
+          chmod 777 /usr/local/lib/pkgconfig
 
       - name: Run cross-compilation
-        run: |
-          export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
-          export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/lib/pkgconfig"
-          export CROSS_PREFIX=${CROSS_COMPILE}
-          ./build_ffmpeg.sh
+        run: ./build_ffmpeg.sh
 
       - name: Check build artifacts
         run: |

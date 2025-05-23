@@ -13,7 +13,12 @@ echo "=== PKG Config paths ==="
 echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
 
-# 2) Build x264
+# 2) Setup pkg-config for cross-compilation
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/lib/pkgconfig"
+mkdir -p /usr/local/lib/pkgconfig
+
+# 3) Build x264
 echo "=== Building x264 ==="
 if [ ! -d "x264" ]; then
     git clone --depth 1 https://code.videolan.org/videolan/x264.git
@@ -32,21 +37,45 @@ cd x264
 make clean || true
 make -j"$(nproc)" V=1
 make install
+
+# Create x264.pc manually if it doesn't exist
+if [ ! -f "/usr/local/lib/pkgconfig/x264.pc" ]; then
+    cat > "/usr/local/lib/pkgconfig/x264.pc" << EOF
+prefix=/usr/local
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: x264
+Description: x264 library
+Version: 0.164.x
+Libs: -L\${libdir} -lx264
+Libs.private: -lpthread
+Cflags: -I\${includedir}
+EOF
+fi
+
 cd ..
 
-# 3) Clone specific FFmpeg version
+# 4) Clone specific FFmpeg version
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
     echo "Cloning FFmpeg..."
     git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
-# 4) Prepare build environment
+# 5) Prepare build environment
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
 mkdir -p build
 
-# 5) Configure and build FFmpeg
+# Debug pkg-config
+echo "=== Testing pkg-config for x264 ==="
+pkg-config --list-all
+pkg-config --cflags x264 || true
+pkg-config --libs x264 || true
+
+# 6) Configure and build FFmpeg
 cd build
 echo "=== Configuring FFmpeg ==="
 bash -x ../$FFMPEG_SRC/configure \
@@ -95,8 +124,8 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-demuxer=image2 \
     --enable-demuxer=image2pipe \
     --enable-muxer=image2 \
-    --extra-cflags="$ARCH_FLAGS $(pkg-config --cflags x264)" \
-    --extra-ldflags="-static -L/usr/local/lib $(pkg-config --libs x264)"
+    --extra-cflags="$ARCH_FLAGS -I/usr/local/include" \
+    --extra-ldflags="-static -L/usr/local/lib -lx264"
 
 echo "=== Building FFmpeg ==="
 make -j"$(nproc)" V=1
