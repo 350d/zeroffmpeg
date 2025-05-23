@@ -47,7 +47,7 @@ jobs:
         run: ./build-ffmpeg.sh
 
       - name: Upload static build artifacts
-        uses: actions/upload-artifact@v3.1.1
+        uses: actions/upload-artifact@v2
         with:
           name: ffmpeg-armv6-static
           path: build/install/bin
