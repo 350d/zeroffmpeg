@@ -12,13 +12,17 @@ echo "=== pkg-config version ==="
 pkg-config --version
 
 # Static build flags
-env | grep PKG_CONFIG
-export PKG_CONFIG_ALL_STATIC=1
-export PKG_CONFIG_FLAGS="--static"
+echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
+echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
+# Ensure fetch tools available
+command -v wget >/dev/null || { echo "wget not found, install it"; exit 1; }
+command -v bzip2 >/dev/null || { echo "bzip2 not found, install it"; exit 1; }
 
 # Architecture and toolchain prefixes
 CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
 echo "Using cross-prefix: $CROSS_PREFIX"
+
+# Set compilers
 export CC=${CROSS_PREFIX}gcc
 export AR=${CROSS_PREFIX}ar
 export AS=${CROSS_PREFIX}as
@@ -31,18 +35,15 @@ export STRIP=${CROSS_PREFIX}strip
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
 # pkg-config paths for ARM
+echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig"
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
-# Compute CFLAGS/LDFLAGS
+# Compute CFLAGS and extra ldflags (not exported globally)
 CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert gnutls)"
-LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
-export CFLAGS LDFLAGS
-
+EXTRA_LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
 echo "CFLAGS=$CFLAGS"
-echo "LDFLAGS=$LDFLAGS"
-
-
+echo "EXTRA_LDFLAGS=$EXTRA_LDFLAGS"
 
 # Define installation prefix
 PREFIX="$(pwd)/install"
@@ -59,6 +60,7 @@ bash -x ./configure \
   --arch=arm \
   --cpu=arm1176jzf-s \
   --target-os=linux \
+  --enable-cross-compile \
   --disable-runtime-cpudetect \
   --enable-static \
   --disable-shared \
@@ -90,7 +92,7 @@ bash -x ./configure \
   --enable-demuxer=image2,image2pipe --enable-muxer=image2 \
   --disable-doc --disable-debug \
   --extra-cflags="$CFLAGS" \
-  --extra-ldflags="$LDFLAGS"
+  --extra-ldflags="$EXTRA_LDFLAGS"
 
 # Build and install
 make -j"$(nproc)"
