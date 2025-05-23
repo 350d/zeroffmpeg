@@ -55,14 +55,14 @@ cd x264
     --disable-thread \
     --disable-asm \
     --extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
-    --prefix=/usr/local
+    --prefix="$SYSROOT/usr"
 make clean || true
 make -j"$(nproc)" V=1
 make install
 
 # Create x264.pc manually
 cat > "$PKG_CONFIG_DIR/x264.pc" << EOF
-prefix=/usr/local
+prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=\${prefix}/lib
 includedir=\${prefix}/include
@@ -82,9 +82,9 @@ ls -la "$PKG_CONFIG_DIR"
 
 # Create libv4l2.pc manually
 cat > "$PKG_CONFIG_DIR/libv4l2.pc" << EOF
-prefix=/usr
+prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
-libdir=\${prefix}/lib/arm-linux-gnueabihf
+libdir=\${prefix}/lib
 includedir=\${prefix}/include
 
 Name: libv4l2
@@ -120,12 +120,24 @@ echo "=== x264 pkg-config output ==="
 pkg-config --cflags x264
 pkg-config --libs x264
 echo "=== x264 library check ==="
-ls -la /usr/local/lib/libx264*
-ls -la /usr/local/include/x264*
+ls -la $SYSROOT/usr/lib/libx264* || echo "No x264 libraries found"
+ls -la $SYSROOT/usr/include/x264* || echo "No x264 headers found"
 
 # 6) Configure and build FFmpeg
 cd build
 echo "=== Configuring FFmpeg ==="
+
+# Debug cross-compilation setup
+echo "=== Cross-compilation debug info ==="
+echo "CROSS_COMPILE: $CROSS_COMPILE"
+echo "SYSROOT: $SYSROOT"
+echo "Checking sysroot contents:"
+ls -la "$SYSROOT/usr/lib/" | head -10
+echo "Checking x264 installation:"
+ls -la "$SYSROOT/usr/lib/libx264*" || echo "x264 not found"
+echo "Checking compiler with sysroot:"
+${CROSS_COMPILE}gcc --sysroot="$SYSROOT" --print-sysroot
+
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
 bash -x ../$FFMPEG_SRC/configure \
@@ -165,9 +177,7 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-muxer=mp4,null \
     --enable-encoder=libx264,rawvideo \
     --enable-libx264 \
-    --enable-libv4l2 \
     --enable-zlib \
-    --enable-indev=alsa \
     --enable-encoder=aac \
     --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
     --enable-parser=aac,mpegaudio,vorbis,opus \
@@ -175,8 +185,9 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-demuxer=image2 \
     --enable-demuxer=image2pipe \
     --enable-muxer=image2 \
-    --extra-cflags="$ARCH_FLAGS -I/usr/local/include -I/usr/include/arm-linux-gnueabihf" \
-    --extra-ldflags="-static -L/usr/local/lib -L/usr/lib/arm-linux-gnueabihf -lx264 -lv4l2 -lpthread -lm -ldl -lrt"
+    --extra-cflags="$ARCH_FLAGS -I$SYSROOT/usr/include" \
+    --extra-ldflags="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib" \
+    --sysroot="$SYSROOT"
 
 echo "=== Building FFmpeg ==="
 make -j"$(nproc)" V=1
