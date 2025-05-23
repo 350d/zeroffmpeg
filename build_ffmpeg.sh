@@ -67,6 +67,14 @@ cd x264
 make clean || true
 make distclean || true
 
+# Ensure directories exist with proper permissions
+sudo mkdir -p "$SYSROOT/usr/lib"
+sudo mkdir -p "$SYSROOT/usr/include"
+sudo mkdir -p "$PKG_CONFIG_DIR"
+sudo chmod -R 755 "$SYSROOT/usr/lib"
+sudo chmod -R 755 "$SYSROOT/usr/include"
+sudo chmod -R 755 "$PKG_CONFIG_DIR"
+
 # Configure x264 with proper paths and flags
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
@@ -85,10 +93,10 @@ PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
     --includedir="$SYSROOT/usr/include"
 
 make -j"$(nproc)" V=1
-make install
+sudo make install
 
 # Create x264.pc with absolute paths
-cat > "$PKG_CONFIG_DIR/x264.pc" << EOF
+sudo tee "$PKG_CONFIG_DIR/x264.pc" << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -129,6 +137,12 @@ if [ "$PKG_CONFIG" != "false" ]; then
     $PKG_CONFIG --libs x264 2>&1 || echo "Failed to get libs"
     echo "Available packages:"
     $PKG_CONFIG --list-all 2>&1 | grep x264 || echo "No x264 in package list"
+    
+    # Verify library can be found by the compiler
+    echo "Testing library with compiler:"
+    echo "int main() { return 0; }" > test.c
+    ${CROSS_COMPILE}gcc test.c $($PKG_CONFIG --cflags --libs x264) -o test && echo "Compilation successful" || echo "Compilation failed"
+    rm -f test.c test
 fi
 
 cd ..
@@ -180,6 +194,32 @@ echo "=== x264 library check ==="
 ls -la $SYSROOT/usr/lib/libx264* || echo "No x264 libraries found"
 ls -la $SYSROOT/usr/include/x264* || echo "No x264 headers found"
 
+# Before FFmpeg configuration, verify x264 is properly set up
+echo "=== Verifying x264 setup before FFmpeg configuration ==="
+echo "Testing pkg-config with verbose output:"
+pkg-config --debug --exists x264 2>&1
+echo "x264 CFLAGS:"
+pkg-config --cflags x264 2>&1
+echo "x264 LIBS:"
+pkg-config --libs x264 2>&1
+
+# Create a test program to verify x264
+cat > test_x264.c << EOF
+#include <stdint.h>
+#include <x264.h>
+int main() {
+    x264_param_t param;
+    x264_picture_t pic;
+    x264_t *h = NULL;
+    x264_encoder_encode(h, NULL, NULL, &pic, NULL);
+    return 0;
+}
+EOF
+
+echo "=== Testing x264 compilation ==="
+${CROSS_COMPILE}gcc -o test_x264 test_x264.c $(pkg-config --cflags --libs x264) && echo "x264 test compilation successful" || echo "x264 test compilation failed"
+rm -f test_x264 test_x264.c
+
 # 6) Configure and build FFmpeg
 cd build
 echo "=== Configuring FFmpeg ==="
@@ -188,25 +228,36 @@ echo "=== Configuring FFmpeg ==="
 echo "=== Cross-compilation debug info ==="
 echo "CROSS_COMPILE: $CROSS_COMPILE"
 echo "SYSROOT: $SYSROOT"
-echo "Checking sysroot contents:"
-ls -la "$SYSROOT/usr/lib/" | head -10
-echo "Checking x264 installation:"
-ls -la "$SYSROOT/usr/lib/libx264*" || echo "x264 not found"
-echo "Checking compiler with sysroot:"
-${CROSS_COMPILE}gcc --sysroot="$SYSROOT" --print-sysroot
+echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+echo "PKG_CONFIG_LIBDIR: $PKG_CONFIG_LIBDIR"
+echo "PKG_CONFIG_SYSROOT_DIR: $PKG_CONFIG_SYSROOT_DIR"
 
 # Check if x264 is available via pkg-config
 X264_AVAILABLE=0
 if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists x264 2>/dev/null; then
     echo "x264 found via pkg-config - including in build"
     X264_AVAILABLE=1
+    X264_CFLAGS="$($PKG_CONFIG --cflags x264)"
+    X264_LIBS="$($PKG_CONFIG --libs x264)"
     X264_CONFIGURE_FLAGS="--enable-libx264 --enable-encoder=libx264"
+    echo "X264 CFLAGS: $X264_CFLAGS"
+    echo "X264 LIBS: $X264_LIBS"
 else
     echo "x264 NOT found via pkg-config - building without libx264"
     X264_CONFIGURE_FLAGS="--disable-libx264"
 fi
 
 echo "Using X264 configuration: $X264_CONFIGURE_FLAGS"
+
+# Set up CFLAGS and LDFLAGS
+EXTRA_CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I$SYSROOT/usr/include"
+EXTRA_LDFLAGS="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib"
+
+# Add x264 flags if available
+if [ $X264_AVAILABLE -eq 1 ]; then
+    EXTRA_CFLAGS="$EXTRA_CFLAGS $X264_CFLAGS"
+    EXTRA_LDFLAGS="$EXTRA_LDFLAGS $X264_LIBS"
+fi
 
 if [ "$PKG_CONFIG" != "false" ]; then
     PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
@@ -227,6 +278,7 @@ if [ "$PKG_CONFIG" != "false" ]; then
         --disable-everything \
         --enable-gpl \
         --enable-version3 \
+        --enable-openssl \
         --enable-protocol=http \
         --enable-protocol=https \
         --enable-protocol=tls \
@@ -258,8 +310,9 @@ if [ "$PKG_CONFIG" != "false" ]; then
         --enable-demuxer=image2 \
         --enable-demuxer=image2pipe \
         --enable-muxer=image2 \
-        --extra-cflags="$ARCH_FLAGS -I$SYSROOT/usr/include" \
-        --extra-ldflags="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib" \
+        --extra-cflags="$EXTRA_CFLAGS" \
+        --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
+        --pkg-config="$PKG_CONFIG" \
         --sysroot="$SYSROOT"
 else
     # Configure without pkg-config
@@ -277,6 +330,7 @@ else
         --disable-everything \
         --enable-gpl \
         --enable-version3 \
+        --enable-openssl \
         --enable-protocol=http \
         --enable-protocol=https \
         --enable-protocol=tls \
@@ -308,8 +362,8 @@ else
         --enable-demuxer=image2 \
         --enable-demuxer=image2pipe \
         --enable-muxer=image2 \
-        --extra-cflags="$ARCH_FLAGS -I$SYSROOT/usr/include" \
-        --extra-ldflags="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib" \
+        --extra-cflags="$EXTRA_CFLAGS" \
+        --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
         --sysroot="$SYSROOT"
 fi
 

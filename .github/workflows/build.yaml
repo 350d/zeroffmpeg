@@ -30,40 +30,96 @@ jobs:
             libv4l-dev \
             libdrm-dev \
             libgnutls28-dev \
-            ccache build-essential cmake git libjpeg-dev libssl-dev
+            ccache build-essential cmake git libjpeg-dev libssl-dev \
+            sudo \
+            libssl-dev \
+            openssl
 
       - name: Setup environment
         run: |
+          # Set up sysroot directories
+          mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/{lib,include,lib/pkgconfig}
+          chmod -R 777 /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot
+
+          # Copy OpenSSL files to sysroot
+          cp -r /usr/include/openssl /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/
+          cp /usr/lib/x86_64-linux-gnu/libssl.a /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
+          cp /usr/lib/x86_64-linux-gnu/libcrypto.a /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
+
+          # Set up pkg-config
+          echo "=== Setting up pkg-config ==="
+          export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
+          export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
+          export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+
+          # Create OpenSSL pkg-config files
+          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/openssl.pc << EOF
+prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: OpenSSL
+Description: Secure Sockets Layer and cryptography libraries
+Version: 1.1.1
+Requires: libssl libcrypto
+EOF
+
+          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc << EOF
+prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: OpenSSL-libssl
+Description: Secure Sockets Layer and cryptography libraries - libssl
+Version: 1.1.1
+Requires: libcrypto
+Libs: -L\${libdir} -lssl
+Cflags: -I\${includedir}
+EOF
+
+          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc << EOF
+prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 1.1.1
+Libs: -L\${libdir} -lcrypto
+Libs.private: -ldl -pthread
+Cflags: -I\${includedir}
+EOF
+
+          # Debug information
           echo "=== System Information ==="
           uname -a
           echo "=== Compiler Information ==="
           ${CROSS_COMPILE}gcc --version
           echo "=== PKG Config Information ==="
           pkg-config --version
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+          echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
+          echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
           echo "=== Environment Variables ==="
           env | sort
-          echo "=== Current Directory Structure ==="
-          pwd
-          ls -la
-          echo "=== Cross Compiler Directory ==="
-          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/
-          echo "=== Sysroot Directory ==="
+          echo "=== Directory Structure ==="
           ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
-          echo "=== PKG Config Directory ==="
-          mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/
+          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/
           ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/
 
       - name: Make build script executable
         run: |
           chmod +x build_ffmpeg.sh
-          mkdir -p /usr/local/lib/pkgconfig
-          chmod 777 /usr/local/lib/pkgconfig
 
       - name: Run cross-compilation
         run: |
           export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+          export PKG_CONFIG_DEBUG_SPEW=1
           ./build_ffmpeg.sh
 
       - name: Check build artifacts
