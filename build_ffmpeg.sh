@@ -33,11 +33,17 @@ export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 # Create a cross-compile aware pkg-config wrapper
 PKG_CONFIG_CROSS="${CROSS_COMPILE}pkg-config"
 if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
-    echo "Creating pkg-config wrapper for cross-compilation"
+    echo "Cross-compile pkg-config not found, using system pkg-config"
     PKG_CONFIG_CROSS="pkg-config"
 fi
 
-export PKG_CONFIG="$PKG_CONFIG_CROSS"
+# Ensure pkg-config is available
+if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
+    echo "Warning: pkg-config not available, will build without libx264"
+    export PKG_CONFIG="false"
+else
+    export PKG_CONFIG="$PKG_CONFIG_CROSS"
+fi
 
 # Ensure library paths are correct
 export LIBRARY_PATH="$SYSROOT/usr/lib:$SYSROOT/lib"
@@ -94,11 +100,15 @@ ls -la "$PKG_CONFIG_DIR"
 echo "=== Testing pkg-config with x264 ==="
 echo "PKG_CONFIG command: $PKG_CONFIG"
 echo "Testing x264 package:"
-$PKG_CONFIG --exists x264 && echo "x264 package found" || echo "x264 package NOT found"
-$PKG_CONFIG --cflags x264 2>/dev/null || echo "Failed to get cflags"
-$PKG_CONFIG --libs x264 2>/dev/null || echo "Failed to get libs"
-echo "Available packages:"
-$PKG_CONFIG --list-all | grep x264 || echo "No x264 in package list"
+if [ "$PKG_CONFIG" != "false" ]; then
+    $PKG_CONFIG --exists x264 2>/dev/null && echo "x264 package found" || echo "x264 package NOT found"
+    $PKG_CONFIG --cflags x264 2>/dev/null || echo "Failed to get cflags"
+    $PKG_CONFIG --libs x264 2>/dev/null || echo "Failed to get libs"
+    echo "Available packages:"
+    $PKG_CONFIG --list-all 2>/dev/null | grep x264 || echo "No x264 in package list"
+else
+    echo "pkg-config not available"
+fi
 
 cd ..
 
@@ -137,10 +147,14 @@ mkdir -p build
 # Debug pkg-config
 echo "=== Testing pkg-config for x264 ==="
 echo "PKG_CONFIG: $PKG_CONFIG"
-$PKG_CONFIG --exists x264 && echo "x264 found via pkg-config" || echo "x264 NOT found via pkg-config"
-echo "=== x264 pkg-config output ==="
-$PKG_CONFIG --cflags x264 2>/dev/null || echo "No cflags available"
-$PKG_CONFIG --libs x264 2>/dev/null || echo "No libs available"
+if [ "$PKG_CONFIG" != "false" ]; then
+    $PKG_CONFIG --exists x264 2>/dev/null && echo "x264 found via pkg-config" || echo "x264 NOT found via pkg-config"
+    echo "=== x264 pkg-config output ==="
+    $PKG_CONFIG --cflags x264 2>/dev/null || echo "No cflags available"
+    $PKG_CONFIG --libs x264 2>/dev/null || echo "No libs available"
+else
+    echo "pkg-config not available - x264 will be disabled"
+fi
 echo "=== x264 library check ==="
 ls -la $SYSROOT/usr/lib/libx264* || echo "No x264 libraries found"
 ls -la $SYSROOT/usr/include/x264* || echo "No x264 headers found"
@@ -162,7 +176,7 @@ ${CROSS_COMPILE}gcc --sysroot="$SYSROOT" --print-sysroot
 
 # Check if x264 is available via pkg-config
 X264_AVAILABLE=0
-if $PKG_CONFIG --exists x264; then
+if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists x264 2>/dev/null; then
     echo "x264 found via pkg-config - including in build"
     X264_AVAILABLE=1
     X264_CONFIGURE_FLAGS="--enable-libx264 --enable-encoder=libx264"
@@ -171,58 +185,112 @@ else
     X264_CONFIGURE_FLAGS="--disable-libx264"
 fi
 
-PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
-PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
-PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
-PKG_CONFIG="$PKG_CONFIG" \
-bash -x ../$FFMPEG_SRC/configure \
-    --prefix="$PREFIX" \
-    --cross-prefix=${CROSS_COMPILE} \
-    --arch=arm \
-    --target-os=linux \
-    --enable-cross-compile \
-    --disable-runtime-cpudetect \
-    --disable-shared \
-    --enable-static \
-    --disable-doc \
-    --disable-debug \
-    --disable-everything \
-    --enable-gpl \
-    --enable-version3 \
-    --enable-protocol=http \
-    --enable-protocol=https \
-    --enable-protocol=tls \
-    --enable-protocol=tcp \
-    --enable-protocol=udp \
-    --enable-protocol=file \
-    --enable-protocol=rtp \
-    --enable-demuxer=rtp \
-    --enable-demuxer=rtsp \
-    --enable-demuxer=h264 \
-    --enable-parser=h264 \
-    --enable-decoder=h264 \
-    --enable-demuxer=mjpeg \
-    --enable-parser=mjpeg \
-    --enable-decoder=mjpeg \
-    --enable-encoder=mjpeg \
-    --enable-muxer=mjpeg \
-    --enable-bsf=mjpeg2jpeg \
-    --enable-indev=lavfi \
-    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
-    --enable-muxer=mp4,null \
-    --enable-encoder=rawvideo \
-    $X264_CONFIGURE_FLAGS \
-    --enable-zlib \
-    --enable-encoder=aac \
-    --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
-    --enable-parser=aac,mpegaudio,vorbis,opus \
-    --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
-    --enable-demuxer=image2 \
-    --enable-demuxer=image2pipe \
-    --enable-muxer=image2 \
-    --extra-cflags="$ARCH_FLAGS -I$SYSROOT/usr/include" \
-    --extra-ldflags="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib" \
-    --sysroot="$SYSROOT"
+echo "Using X264 configuration: $X264_CONFIGURE_FLAGS"
+
+if [ "$PKG_CONFIG" != "false" ]; then
+    PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
+    PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
+    PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+    PKG_CONFIG="$PKG_CONFIG" \
+    bash -x ../$FFMPEG_SRC/configure \
+        --prefix="$PREFIX" \
+        --cross-prefix=${CROSS_COMPILE} \
+        --arch=arm \
+        --target-os=linux \
+        --enable-cross-compile \
+        --disable-runtime-cpudetect \
+        --disable-shared \
+        --enable-static \
+        --disable-doc \
+        --disable-debug \
+        --disable-everything \
+        --enable-gpl \
+        --enable-version3 \
+        --enable-protocol=http \
+        --enable-protocol=https \
+        --enable-protocol=tls \
+        --enable-protocol=tcp \
+        --enable-protocol=udp \
+        --enable-protocol=file \
+        --enable-protocol=rtp \
+        --enable-demuxer=rtp \
+        --enable-demuxer=rtsp \
+        --enable-demuxer=h264 \
+        --enable-parser=h264 \
+        --enable-decoder=h264 \
+        --enable-demuxer=mjpeg \
+        --enable-parser=mjpeg \
+        --enable-decoder=mjpeg \
+        --enable-encoder=mjpeg \
+        --enable-muxer=mjpeg \
+        --enable-bsf=mjpeg2jpeg \
+        --enable-indev=lavfi \
+        --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
+        --enable-muxer=mp4,null \
+        --enable-encoder=rawvideo \
+        $X264_CONFIGURE_FLAGS \
+        --enable-zlib \
+        --enable-encoder=aac \
+        --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
+        --enable-parser=aac,mpegaudio,vorbis,opus \
+        --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
+        --enable-demuxer=image2 \
+        --enable-demuxer=image2pipe \
+        --enable-muxer=image2 \
+        --extra-cflags="$ARCH_FLAGS -I$SYSROOT/usr/include" \
+        --extra-ldflags="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib" \
+        --sysroot="$SYSROOT"
+else
+    # Configure without pkg-config
+    bash -x ../$FFMPEG_SRC/configure \
+        --prefix="$PREFIX" \
+        --cross-prefix=${CROSS_COMPILE} \
+        --arch=arm \
+        --target-os=linux \
+        --enable-cross-compile \
+        --disable-runtime-cpudetect \
+        --disable-shared \
+        --enable-static \
+        --disable-doc \
+        --disable-debug \
+        --disable-everything \
+        --enable-gpl \
+        --enable-version3 \
+        --enable-protocol=http \
+        --enable-protocol=https \
+        --enable-protocol=tls \
+        --enable-protocol=tcp \
+        --enable-protocol=udp \
+        --enable-protocol=file \
+        --enable-protocol=rtp \
+        --enable-demuxer=rtp \
+        --enable-demuxer=rtsp \
+        --enable-demuxer=h264 \
+        --enable-parser=h264 \
+        --enable-decoder=h264 \
+        --enable-demuxer=mjpeg \
+        --enable-parser=mjpeg \
+        --enable-decoder=mjpeg \
+        --enable-encoder=mjpeg \
+        --enable-muxer=mjpeg \
+        --enable-bsf=mjpeg2jpeg \
+        --enable-indev=lavfi \
+        --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
+        --enable-muxer=mp4,null \
+        --enable-encoder=rawvideo \
+        $X264_CONFIGURE_FLAGS \
+        --enable-zlib \
+        --enable-encoder=aac \
+        --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
+        --enable-parser=aac,mpegaudio,vorbis,opus \
+        --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
+        --enable-demuxer=image2 \
+        --enable-demuxer=image2pipe \
+        --enable-muxer=image2 \
+        --extra-cflags="$ARCH_FLAGS -I$SYSROOT/usr/include" \
+        --extra-ldflags="--sysroot=$SYSROOT -static -L$SYSROOT/usr/lib" \
+        --sysroot="$SYSROOT"
+fi
 
 echo "=== Building FFmpeg ==="
 make -j"$(nproc)" V=1
