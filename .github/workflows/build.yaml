@@ -47,57 +47,11 @@ jobs:
           sudo mkdir -p /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig
           sudo chmod -R 777 /usr/xcc/armv6-unknown-linux-gnueabihf
 
-          # Copy OpenSSL files to sysroot
-          cp -r /usr/include/openssl /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include/
-          cp /usr/lib/x86_64-linux-gnu/libssl.a /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
-          cp /usr/lib/x86_64-linux-gnu/libcrypto.a /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/
-
           # Set up pkg-config
           echo "=== Setting up pkg-config ==="
           export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig"
           export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
-
-          # Create OpenSSL pkg-config files
-          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/openssl.pc << EOF
-          prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-          exec_prefix=\${prefix}
-          libdir=\${prefix}/lib
-          includedir=\${prefix}/include
-
-          Name: OpenSSL
-          Description: Secure Sockets Layer and cryptography libraries
-          Version: 1.1.1
-          Requires: libssl libcrypto
-          EOF
-
-          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc << EOF
-          prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-          exec_prefix=\${prefix}
-          libdir=\${prefix}/lib
-          includedir=\${prefix}/include
-
-          Name: OpenSSL-libssl
-          Description: Secure Sockets Layer and cryptography libraries - libssl
-          Version: 1.1.1
-          Requires: libcrypto
-          Libs: -L\${libdir} -lssl
-          Cflags: -I\${includedir}
-          EOF
-
-          cat > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc << EOF
-          prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr
-          exec_prefix=\${prefix}
-          libdir=\${prefix}/lib
-          includedir=\${prefix}/include
-
-          Name: OpenSSL-libcrypto
-          Description: OpenSSL cryptography library
-          Version: 1.1.1
-          Libs: -L\${libdir} -lcrypto
-          Libs.private: -ldl -pthread
-          Cflags: -I\${includedir}
-          EOF
 
           # Debug information
           echo "=== System Information ==="

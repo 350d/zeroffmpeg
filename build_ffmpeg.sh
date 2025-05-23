@@ -288,10 +288,7 @@ if [ "$PKG_CONFIG" != "false" ]; then
         --enable-gpl \
         --enable-nonfree \
         --enable-version3 \
-        --enable-openssl \
         --enable-protocol=http \
-        --enable-protocol=https \
-        --enable-protocol=tls \
         --enable-protocol=tcp \
         --enable-protocol=udp \
         --enable-protocol=file \
@@ -321,7 +318,7 @@ if [ "$PKG_CONFIG" != "false" ]; then
         --enable-demuxer=image2pipe \
         --enable-muxer=image2 \
         --extra-cflags="$EXTRA_CFLAGS" \
-        --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
+        --extra-ldflags="$EXTRA_LDFLAGS" \
         --pkg-config="$PKG_CONFIG" \
         --pkg-config-flags="--static" \
         --sysroot="$SYSROOT"
@@ -342,10 +339,7 @@ else
         --enable-gpl \
         --enable-nonfree \
         --enable-version3 \
-        --enable-openssl \
         --enable-protocol=http \
-        --enable-protocol=https \
-        --enable-protocol=tls \
         --enable-protocol=tcp \
         --enable-protocol=udp \
         --enable-protocol=file \
@@ -375,7 +369,7 @@ else
         --enable-demuxer=image2pipe \
         --enable-muxer=image2 \
         --extra-cflags="$EXTRA_CFLAGS" \
-        --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
+        --extra-ldflags="$EXTRA_LDFLAGS" \
         --pkg-config-flags="--static" \
         --sysroot="$SYSROOT"
 fi
