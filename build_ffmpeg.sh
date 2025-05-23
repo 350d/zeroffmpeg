@@ -56,7 +56,58 @@ echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
 echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
 echo "LIBRARY_PATH=$LIBRARY_PATH"
 
-# 3) Build x264
+# 3) Build zlib
+echo "=== Building zlib ==="
+if [ ! -d "zlib" ]; then
+    git clone --depth 1 https://github.com/madler/zlib.git
+fi
+cd zlib
+
+# Export cross-compiler tools for zlib build
+export CC=${CROSS_COMPILE}gcc
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
+
+echo "Building zlib with:"
+echo "CC=$CC"
+echo "AR=$AR"
+echo "RANLIB=$RANLIB"
+
+# Configure and build zlib
+CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+./configure \
+    --prefix="$SYSROOT/usr" \
+    --libdir="$SYSROOT/usr/lib" \
+    --includedir="$SYSROOT/usr/include" \
+    --static
+
+make -j"$(nproc)" V=1
+sudo make install
+
+# Create zlib.pc file
+sudo tee "$PKG_CONFIG_DIR/zlib.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+Libs: -L\${libdir} -lz
+Cflags: -I\${includedir}
+EOF
+
+echo "=== Verifying zlib installation ==="
+echo "Checking zlib library:"
+ls -la "$SYSROOT/usr/lib/libz*" || echo "No zlib libraries found"
+echo "Checking zlib headers:"
+ls -la "$SYSROOT/usr/include/zlib*" || echo "No zlib headers found"
+
+cd ..
+
+# 4) Build x264
 echo "=== Building x264 ==="
 if [ ! -d "x264" ]; then
     git clone --depth 1 https://code.videolan.org/videolan/x264.git
@@ -175,14 +226,14 @@ cat "$PKG_CONFIG_DIR/libv4l2.pc"
 
 cd ..
 
-# 4) Clone specific FFmpeg version
+# 5) Clone specific FFmpeg version
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
     echo "Cloning FFmpeg..."
     git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
-# 5) Prepare build environment
+# 6) Prepare build environment
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
 mkdir -p build
@@ -229,7 +280,7 @@ echo "=== Testing x264 compilation ==="
 ${CROSS_COMPILE}gcc -o test_x264 test_x264.c $(pkg-config --cflags --libs x264) && echo "x264 test compilation successful" || echo "x264 test compilation failed"
 rm -f test_x264 test_x264.c
 
-# 6) Configure and build FFmpeg
+# 7) Configure and build FFmpeg
 cd build
 echo "=== Configuring FFmpeg ==="
 
