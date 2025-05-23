@@ -1,13 +1,6 @@
-name: Build FFmpeg for Pi Zero v7.1
+name: Build FFmpeg for Pi Zero v7.2
 
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'build-ffmpeg.sh'
-      - '.github/workflows/build-ffmpeg.yml'
-      - 'ffmpeg/**'
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 jobs:
   build:
@@ -54,7 +47,7 @@ jobs:
         run: ./build-ffmpeg.sh
 
       - name: Upload static build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.1
         with:
           name: ffmpeg-armv6-static
           path: build/install/bin
