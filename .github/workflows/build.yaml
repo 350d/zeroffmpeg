@@ -26,7 +26,7 @@ jobs:
             pkg-config \
             libc6-dev:armhf \
             pkg-config \
-            libv4l-dev:armhf \
+            v4l-utils-dev:armhf \
             libdrm-dev:armhf \
             libssl-dev:armhf \
             zlib1g-dev:armhf \
