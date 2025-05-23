@@ -1,4 +1,4 @@
-name: Build FFmpeg for Pi Zero v7.3
+name: Build FFmpeg for Pi Zero v7.4
 
 on: [workflow_dispatch]
 
@@ -35,11 +35,6 @@ jobs:
             libvorbis-dev:armhf \
             libmp3lame-dev:armhf
 
-      - name: Set up QEMU emulation
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm
-
       - name: Make build script executable
         run: chmod +x build-ffmpeg.sh
 
@@ -47,7 +42,7 @@ jobs:
         run: ./build-ffmpeg.sh
 
       - name: Upload static build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v2
         with:
           name: ffmpeg-armv6-static
           path: build/install/bin
