@@ -53,6 +53,8 @@ if [ ! -d ffmpeg ]; then
 fi
 cd ffmpeg
 
+echo "== libv4l2 pc:"; pkg-config --cflags --libs libv4l2 libv4lconvert
+
 # Configure FFmpeg for fully static ARMv6 build
 bash -x ./configure \
   --prefix="$PREFIX" \
