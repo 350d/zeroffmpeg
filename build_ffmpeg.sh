@@ -129,7 +129,6 @@ echo "RANLIB=$RANLIB"
 ./Configure linux-armv4 \
     --prefix="$SYSROOT/usr" \
     --openssldir="$SYSROOT/usr/ssl" \
-    --cross-compile-prefix=${CROSS_COMPILE} \
     no-shared \
     no-dso \
     no-engine \
