@@ -13,16 +13,17 @@ pkg-config --version
 
 # Static build flags defaults
 export PKG_CONFIG_ALL_STATIC=${PKG_CONFIG_ALL_STATIC:-1}
-export PKG_CONFIG_FLAGS=${PKG_CONFIG_FLAGS:-"--static"}
 
 echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
-echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
 
-# Architecture and toolchain prefixes
+# Ensure fetch tools available
+command -v git >/dev/null || { echo "git not found, install it"; exit 1; }
+command -v wget >/dev/null || { echo "wget not found, install it"; exit 1; }
+command -v bzip2 >/dev/null || { echo "bzip2 not found, install it"; exit 1; }
+
+# Toolchain prefixes
 CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
 echo "Using cross-prefix: $CROSS_PREFIX"
-
-# Set compilers
 export CC=${CROSS_PREFIX}gcc
 export AR=${CROSS_PREFIX}ar
 export AS=${CROSS_PREFIX}as
@@ -31,32 +32,38 @@ export NM=${CROSS_PREFIX}nm
 export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
-# Set ARCHFLAGS for ARMv6 hard-float
+# ARCHFLAGS for ARMv6 hard-float
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
-# pkg-config paths for ARM
 echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig"
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
 export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
 
-# Compute CFLAGS and extra ldflags
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert openssl)"
-EXTRA_LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert openssl) -static"
+# Compute CFLAGS and EXTRA_LDFLAGS including libv4l2 and OpenSSL
+V4L2_CFLAGS=$(pkg-config --cflags libv4l2 libv4lconvert)
+SSL_CFLAGS=$(pkg-config --cflags openssl)
+CFLAGS="$ARCH_FLAGS $V4L2_CFLAGS $SSL_CFLAGS"
 echo "CFLAGS=$CFLAGS"
+
+V4L2_LDFLAGS=$(pkg-config --libs libv4l2 libv4lconvert)
+SSL_LDFLAGS=$(pkg-config --static --libs openssl)
+EXTRA_LDFLAGS="$V4L2_LDFLAGS $SSL_LDFLAGS -static"
 echo "EXTRA_LDFLAGS=$EXTRA_LDFLAGS"
 
-# Define installation prefix
-PREFIX="$(pwd)/install"
-
-if [ ! -d ffmpeg ]; then
-  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git ffmpeg
+# Fetch latest FFmpeg from Git if not present
+SRC_DIR="ffmpeg"
+if [ ! -d "$SRC_DIR" ]; then
+  echo "Cloning FFmpeg from Git..."
+  git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$SRC_DIR"
 fi
-cd ffmpeg
 
-echo "== libv4l2 pc:"; pkg-config --cflags --libs libv4l2 libv4lconvert
+# Prepare build directory
+PREFIX="$(pwd)/install"
+mkdir -p build
+cd build
 
-# Configure FFmpeg for fully static ARMv6 build
-bash -x ./configure \
+# Configure FFmpeg (static, cross-compile) with libv4l2 support
+bash -x ../$SRC_DIR/configure \
   --prefix="$PREFIX" \
   --cross-prefix=$CROSS_PREFIX \
   --arch=arm \
@@ -66,38 +73,30 @@ bash -x ./configure \
   --disable-runtime-cpudetect \
   --enable-static \
   --disable-shared \
-  --pkg-config-flags="$PKG_CONFIG_FLAGS" \
   --disable-everything \
-  --enable-gpl --enable-nonfree \
-  --enable-openssl --enable-version3 \
-  --enable-protocol=http \
-  --enable-protocol=https \
-  --enable-protocol=tls \
-  --enable-protocol=tcp \
-  --enable-protocol=udp \
-  --enable-protocol=file \
-  --enable-protocol=rtp \
-  --enable-demuxer=rtp,rtsp \
-  --enable-demuxer=h264 --enable-parser=h264 --enable-decoder=h264 \
-  --enable-demuxer=mjpeg --enable-parser=mjpeg --enable-decoder=mjpeg \
-  --enable-encoder=mjpeg --enable-muxer=mjpeg \
+  --enable-gpl \
+  --enable-version3 \
+  --enable-nonfree \
+  --enable-openssl \
+  --enable-libv4l2 \
+  --enable-libdrm \
+  --enable-libx264 \
+  --enable-zlib \
+  --enable-protocol=http,https,tls,tcp,udp,file \
+  --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
+  --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
+  --enable-decoder=h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+  --enable-encoder=mjpeg,libx264,rawvideo,aac \
+  --enable-muxer=mjpeg,mp4,null,image2 \
   --enable-bsf=mjpeg2jpeg \
-  --enable-indev=lavfi \
+  --enable-indev=lavfi,alsa \
   --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
-  --enable-muxer=mp4,null \
-  --enable-encoder=libx264,rawvideo --enable-libx264 \
-  --enable-libv4l2 --enable-libdrm --enable-zlib \
-  --enable-indev=alsa --enable-encoder=aac \
-  --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
-  --enable-parser=aac,mpegaudio,vorbis,opus \
-  --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
-  --enable-demuxer=image2,image2pipe --enable-muxer=image2 \
   --disable-doc --disable-debug \
   --extra-cflags="$CFLAGS" \
   --extra-ldflags="$EXTRA_LDFLAGS"
 
-# Build and install
+# Build & install
 make -j"$(nproc)"
 make install
 
-echo "Static build complete. Binaries are in $PREFIX/bin"
+echo "Static build complete. Binaries in $PREFIX/bin"
