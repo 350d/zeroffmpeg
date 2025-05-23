@@ -8,8 +8,14 @@ env | sort
 echo "=== GCC version ==="
 ${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}gcc --version
 
-echo "=== pkg-config version ==="
+echo "=== pkg-config version (host) ==="
 pkg-config --version
+
+# Enable fully static build
+export PKG_CONFIG_ALL_STATIC=1
+export PKG_CONFIG_FLAGS="--static"
+echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
+echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
 
 # Toolchain prefixes
 CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
@@ -22,48 +28,30 @@ export NM=${CROSS_PREFIX}nm
 export RANLIB=${CROSS_PREFIX}ranlib
 export STRIP=${CROSS_PREFIX}strip
 
-# Set fully static build flags
-export PKG_CONFIG_ALL_STATIC=1
-export PKG_CONFIG_FLAGS="--static"
-echo "PKG_CONFIG_ALL_STATIC=$PKG_CONFIG_ALL_STATIC"
-echo "PKG_CONFIG_FLAGS=$PKG_CONFIG_FLAGS"
+# Create cross-`pkg-config` wrapper
+toolchain_bin=$(dirname "$CC")
+cat > "$toolchain_bin/${CROSS_PREFIX}pkg-config" << 'EOF'
+#!/usr/bin/env bash
+# Ensure ARM .pc files are found
+export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
+export PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig
+exec pkg-config "$@"
+EOF
+chmod +x "$toolchain_bin/${CROSS_PREFIX}pkg-config"
+export PKG_CONFIG="$toolchain_bin/${CROSS_PREFIX}pkg-config"
+# Prepend wrapper to PATH so configure picks it up
+export PATH="$toolchain_bin:$PATH"
+echo "Wrapper PKG_CONFIG=$PKG_CONFIG"
 
 # ARCH flags for ARMv6 hard-float
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 
-# Ensure build dependencies for v4l-utils are available
-# Build libv4l2 and libv4lconvert from source to enable static linking
-V4L_SRC_DIR="v4l-utils"
-V4L_INSTALL_DIR="$(pwd)/v4l-install"
-if [ ! -d "$V4L_SRC_DIR" ]; then
-  echo "Cloning v4l-utils for static libv4l build..."
-  git clone --depth 1 https://github.com/gjasny/v4l-utils.git "$V4L_SRC_DIR"
-fi
-cd "$V4L_SRC_DIR"
-# Prepare and configure static build of v4l-utils
-autoreconf -fiv
-./configure \
-  --host=armv6-unknown-linux-gnueabihf \
-  --prefix="$V4L_INSTALL_DIR" \
-  --disable-shared \
-  --enable-static \
-  --disable-tools
-make -j"$(nproc)"
-make install
-cd ..
-
-echo "Static v4l-utils installed to $V4L_INSTALL_DIR"
-
-# Configure pkg-config to use v4l-install first
-export PKG_CONFIG_PATH="$V4L_INSTALL_DIR/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
-
-echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-
-# Compute CFLAGS and LDFLAGS for static build
-CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags \
+echo "Computing CFLAGS and LDFLAGS..."
+# Compute flags for all external libs
+CFLAGS="$ARCH_FLAGS $($PKG_CONFIG $PKG_CONFIG_FLAGS --cflags \
   libv4l2 libv4lconvert openssl libdrm x264 zlib)"
 echo "CFLAGS=$CFLAGS"
-LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs \
+LDFLAGS="$($PKG_CONFIG $PKG_CONFIG_FLAGS --libs \
   libv4l2 libv4lconvert openssl libdrm x264 zlib) -static"
 echo "LDFLAGS=$LDFLAGS"
 
@@ -78,7 +66,6 @@ fi
 PREFIX="$(pwd)/install"
 mkdir -p build && cd build
 
-# Configure fully static FFmpeg with v4l2 support
 echo "Configuring FFmpeg..."
 bash -x ../$FFMPEG_SRC/configure \
   --prefix="$PREFIX" \
@@ -113,6 +100,7 @@ bash -x ../$FFMPEG_SRC/configure \
   --extra-ldflags="$LDFLAGS"
 
 # Build & install
+echo "Building FFmpeg..."
 make -j"$(nproc)"
 make install
 
