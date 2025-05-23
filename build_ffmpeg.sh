@@ -107,7 +107,94 @@ ls -la "$SYSROOT/usr/include/zlib*" || echo "No zlib headers found"
 
 cd ..
 
-# 4) Build x264
+# 4) Build OpenSSL
+echo "=== Building OpenSSL ==="
+if [ ! -d "openssl" ]; then
+    git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git
+fi
+cd openssl
+
+# Export cross-compiler tools for OpenSSL build
+export CC=${CROSS_COMPILE}gcc
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
+
+echo "Building OpenSSL with:"
+echo "CC=$CC"
+echo "AR=$AR"
+echo "RANLIB=$RANLIB"
+
+# Configure OpenSSL for ARM
+./Configure linux-armv4 \
+    --prefix="$SYSROOT/usr" \
+    --openssldir="$SYSROOT/usr/ssl" \
+    --cross-compile-prefix=${CROSS_COMPILE} \
+    no-shared \
+    no-dso \
+    no-engine \
+    no-unit-test \
+    no-ui-console \
+    -static \
+    -march=armv6 \
+    -mfpu=vfp \
+    -mfloat-abi=hard \
+    -Os
+
+make -j"$(nproc)" build_libs
+sudo make install_dev
+
+# Create OpenSSL pkg-config files
+sudo tee "$PKG_CONFIG_DIR/openssl.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: OpenSSL
+Description: Secure Sockets Layer and cryptography libraries
+Version: 1.1.1
+Requires: libssl libcrypto
+EOF
+
+sudo tee "$PKG_CONFIG_DIR/libssl.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: OpenSSL-libssl
+Description: Secure Sockets Layer and cryptography libraries - libssl
+Version: 1.1.1
+Requires: libcrypto
+Libs: -L\${libdir} -lssl
+Cflags: -I\${includedir}
+EOF
+
+sudo tee "$PKG_CONFIG_DIR/libcrypto.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 1.1.1
+Libs: -L\${libdir} -lcrypto
+Libs.private: -ldl -pthread
+Cflags: -I\${includedir}
+EOF
+
+echo "=== Verifying OpenSSL installation ==="
+echo "Checking OpenSSL libraries:"
+ls -la "$SYSROOT/usr/lib/libssl*" || echo "No libssl libraries found"
+ls -la "$SYSROOT/usr/lib/libcrypto*" || echo "No libcrypto libraries found"
+echo "Checking OpenSSL headers:"
+ls -la "$SYSROOT/usr/include/openssl/" || echo "No OpenSSL headers found"
+
+cd ..
+
+# 5) Build x264
 echo "=== Building x264 ==="
 if [ ! -d "x264" ]; then
     git clone --depth 1 https://code.videolan.org/videolan/x264.git
@@ -226,14 +313,14 @@ cat "$PKG_CONFIG_DIR/libv4l2.pc"
 
 cd ..
 
-# 5) Clone specific FFmpeg version
+# 6) Clone specific FFmpeg version
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
     echo "Cloning FFmpeg..."
     git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
-# 6) Prepare build environment
+# 7) Prepare build environment
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
 mkdir -p build
@@ -280,7 +367,7 @@ echo "=== Testing x264 compilation ==="
 ${CROSS_COMPILE}gcc -o test_x264 test_x264.c $(pkg-config --cflags --libs x264) && echo "x264 test compilation successful" || echo "x264 test compilation failed"
 rm -f test_x264 test_x264.c
 
-# 7) Configure and build FFmpeg
+# 8) Configure and build FFmpeg
 cd build
 echo "=== Configuring FFmpeg ==="
 
@@ -319,111 +406,63 @@ if [ $X264_AVAILABLE -eq 1 ]; then
     EXTRA_LDFLAGS="$EXTRA_LDFLAGS $X264_LIBS"
 fi
 
-if [ "$PKG_CONFIG" != "false" ]; then
-    PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
-    PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
-    PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
-    PKG_CONFIG="$PKG_CONFIG" \
-    bash -x ../$FFMPEG_SRC/configure \
-        --prefix="$PREFIX" \
-        --cross-prefix=${CROSS_COMPILE} \
-        --arch=arm \
-        --target-os=linux \
-        --enable-cross-compile \
-        --disable-runtime-cpudetect \
-        --disable-shared \
-        --enable-static \
-        --disable-doc \
-        --disable-debug \
-        --disable-everything \
-        --enable-gpl \
-        --enable-nonfree \
-        --enable-version3 \
-        --enable-protocol=http \
-        --enable-protocol=tcp \
-        --enable-protocol=udp \
-        --enable-protocol=file \
-        --enable-protocol=rtp \
-        --enable-demuxer=rtp \
-        --enable-demuxer=rtsp \
-        --enable-demuxer=h264 \
-        --enable-parser=h264 \
-        --enable-decoder=h264 \
-        --enable-demuxer=mjpeg \
-        --enable-parser=mjpeg \
-        --enable-decoder=mjpeg \
-        --enable-encoder=mjpeg \
-        --enable-muxer=mjpeg \
-        --enable-bsf=mjpeg2jpeg \
-        --enable-indev=lavfi \
-        --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
-        --enable-muxer=mp4,null \
-        --enable-encoder=rawvideo \
-        $X264_CONFIGURE_FLAGS \
-        --enable-zlib \
-        --enable-encoder=aac \
-        --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
-        --enable-parser=aac,mpegaudio,vorbis,opus \
-        --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
-        --enable-demuxer=image2 \
-        --enable-demuxer=image2pipe \
-        --enable-muxer=image2 \
-        --extra-cflags="$EXTRA_CFLAGS" \
-        --extra-ldflags="$EXTRA_LDFLAGS" \
-        --pkg-config="$PKG_CONFIG" \
-        --pkg-config-flags="--static" \
-        --sysroot="$SYSROOT"
-else
-    # Configure without pkg-config
-    bash -x ../$FFMPEG_SRC/configure \
-        --prefix="$PREFIX" \
-        --cross-prefix=${CROSS_COMPILE} \
-        --arch=arm \
-        --target-os=linux \
-        --enable-cross-compile \
-        --disable-runtime-cpudetect \
-        --disable-shared \
-        --enable-static \
-        --disable-doc \
-        --disable-debug \
-        --disable-everything \
-        --enable-gpl \
-        --enable-nonfree \
-        --enable-version3 \
-        --enable-protocol=http \
-        --enable-protocol=tcp \
-        --enable-protocol=udp \
-        --enable-protocol=file \
-        --enable-protocol=rtp \
-        --enable-demuxer=rtp \
-        --enable-demuxer=rtsp \
-        --enable-demuxer=h264 \
-        --enable-parser=h264 \
-        --enable-decoder=h264 \
-        --enable-demuxer=mjpeg \
-        --enable-parser=mjpeg \
-        --enable-decoder=mjpeg \
-        --enable-encoder=mjpeg \
-        --enable-muxer=mjpeg \
-        --enable-bsf=mjpeg2jpeg \
-        --enable-indev=lavfi \
-        --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
-        --enable-muxer=mp4,null \
-        --enable-encoder=rawvideo \
-        $X264_CONFIGURE_FLAGS \
-        --enable-zlib \
-        --enable-encoder=aac \
-        --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
-        --enable-parser=aac,mpegaudio,vorbis,opus \
-        --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
-        --enable-demuxer=image2 \
-        --enable-demuxer=image2pipe \
-        --enable-muxer=image2 \
-        --extra-cflags="$EXTRA_CFLAGS" \
-        --extra-ldflags="$EXTRA_LDFLAGS" \
-        --pkg-config-flags="--static" \
-        --sysroot="$SYSROOT"
-fi
+# Configure and build FFmpeg
+PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
+PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
+PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+PKG_CONFIG="$PKG_CONFIG" \
+bash -x ../$FFMPEG_SRC/configure \
+    --prefix="$PREFIX" \
+    --cross-prefix=${CROSS_COMPILE} \
+    --arch=arm \
+    --target-os=linux \
+    --enable-cross-compile \
+    --disable-runtime-cpudetect \
+    --disable-shared \
+    --enable-static \
+    --disable-doc \
+    --disable-debug \
+    --disable-everything \
+    --enable-gpl \
+    --enable-nonfree \
+    --enable-version3 \
+    --enable-openssl \
+    --enable-protocol=http \
+    --enable-protocol=https \
+    --enable-protocol=tls \
+    --enable-protocol=tcp \
+    --enable-protocol=udp \
+    --enable-protocol=file \
+    --enable-protocol=rtp \
+    --enable-demuxer=rtp \
+    --enable-demuxer=rtsp \
+    --enable-demuxer=h264 \
+    --enable-parser=h264 \
+    --enable-decoder=h264 \
+    --enable-demuxer=mjpeg \
+    --enable-parser=mjpeg \
+    --enable-decoder=mjpeg \
+    --enable-encoder=mjpeg \
+    --enable-muxer=mjpeg \
+    --enable-bsf=mjpeg2jpeg \
+    --enable-indev=lavfi \
+    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
+    --enable-muxer=mp4,null \
+    --enable-encoder=rawvideo \
+    $X264_CONFIGURE_FLAGS \
+    --enable-zlib \
+    --enable-encoder=aac \
+    --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
+    --enable-parser=aac,mpegaudio,vorbis,opus \
+    --enable-decoder=aac,mp3float,vorbis,opus,pcm_s16le \
+    --enable-demuxer=image2 \
+    --enable-demuxer=image2pipe \
+    --enable-muxer=image2 \
+    --extra-cflags="$EXTRA_CFLAGS" \
+    --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
+    --pkg-config="$PKG_CONFIG" \
+    --pkg-config-flags="--static" \
+    --sysroot="$SYSROOT"
 
 echo "=== Building FFmpeg ==="
 make -j"$(nproc)" V=1

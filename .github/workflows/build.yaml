@@ -84,14 +84,14 @@ jobs:
 
       - name: Check build artifacts
         run: |
-          ls -la install/bin/
-          file install/bin/ffmpeg
-          ${CROSS_COMPILE}readelf -h install/bin/ffmpeg
-          ldd install/bin/ffmpeg || true
+          ls -la /__w/zeroffmpeg/install/bin/
+          file /__w/zeroffmpeg/install/bin/ffmpeg
+          ${CROSS_COMPILE}readelf -h /__w/zeroffmpeg/install/bin/ffmpeg
+          ldd /__w/zeroffmpeg/install/bin/ffmpeg || true
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-armv6-static
-          path: install/bin/
+          path: /__w/zeroffmpeg/install/bin/
           if-no-files-found: error
