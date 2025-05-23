@@ -63,15 +63,21 @@ if [ ! -d "x264" ]; then
 fi
 cd x264
 
-# Clean any previous builds
-make clean || true
-make distclean || true
-
-# Export cross-compiler tools for x264 build
+# Export cross-compiler tools for x264 build BEFORE any make commands
 export CC=${CROSS_COMPILE}gcc
 export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
+
+echo "Exported compiler variables:"
+echo "CC=$CC"
+echo "AR=$AR"
+echo "RANLIB=$RANLIB"
+echo "STRIP=$STRIP"
+
+# Clean any previous builds (now with proper CC set)
+make clean || true
+make distclean || true
 
 # Ensure directories exist with proper permissions
 sudo mkdir -p "$SYSROOT/usr/lib"
