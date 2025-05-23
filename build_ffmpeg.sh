@@ -286,6 +286,7 @@ if [ "$PKG_CONFIG" != "false" ]; then
         --disable-debug \
         --disable-everything \
         --enable-gpl \
+        --enable-nonfree \
         --enable-version3 \
         --enable-openssl \
         --enable-protocol=http \
@@ -339,6 +340,7 @@ else
         --disable-debug \
         --disable-everything \
         --enable-gpl \
+        --enable-nonfree \
         --enable-version3 \
         --enable-openssl \
         --enable-protocol=http \
