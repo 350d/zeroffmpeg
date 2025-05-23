@@ -159,7 +159,7 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-demuxer=image2pipe \
     --enable-muxer=image2 \
     --extra-cflags="$ARCH_FLAGS -I/usr/local/include -I/usr/include/arm-linux-gnueabihf" \
-    --extra-ldflags="-static -L/usr/local/lib -L/usr/lib/arm-linux-gnueabihf -lx264 -lv4l2"
+    --extra-ldflags="-static -L/usr/local/lib -L/usr/lib/arm-linux-gnueabihf -lx264 -lv4l2 -lpthread -lm -ldl -lrt"
 
 echo "=== Building FFmpeg ==="
 make -j"$(nproc)" V=1
