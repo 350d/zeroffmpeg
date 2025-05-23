@@ -114,13 +114,21 @@ if [ ! -d "openssl" ]; then
 fi
 cd openssl
 
-echo "Building OpenSSL with cross-compile prefix: ${CROSS_COMPILE}"
+# Export cross-compiler tools BEFORE configure
+export CC=${CROSS_COMPILE}gcc
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
 
-# Configure OpenSSL for ARM first, then set environment variables
+echo "Building OpenSSL with:"
+echo "CC=$CC"
+echo "AR=$AR"
+echo "RANLIB=$RANLIB"
+
+# Configure OpenSSL for ARM using environment variables only
 ./Configure linux-armv4 \
     --prefix="$SYSROOT/usr" \
     --openssldir="$SYSROOT/usr/ssl" \
-    --cross-compile-prefix=${CROSS_COMPILE} \
     no-shared \
     no-dso \
     no-engine \
@@ -131,17 +139,6 @@ echo "Building OpenSSL with cross-compile prefix: ${CROSS_COMPILE}"
     -mfpu=vfp \
     -mfloat-abi=hard \
     -Os
-
-# Now export cross-compiler tools for the make process
-export CC=${CROSS_COMPILE}gcc
-export AR=${CROSS_COMPILE}ar
-export RANLIB=${CROSS_COMPILE}ranlib
-export STRIP=${CROSS_COMPILE}strip
-
-echo "Exported variables after configure:"
-echo "CC=$CC"
-echo "AR=$AR"
-echo "RANLIB=$RANLIB"
 
 make -j"$(nproc)" build_libs
 sudo make install_dev
