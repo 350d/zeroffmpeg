@@ -9,13 +9,17 @@ ${CROSS_COMPILE}gcc --version
 echo "=== Working directory ==="
 pwd
 ls -la
-echo "=== PKG Config paths ==="
-echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
 
 # 2) Setup pkg-config for cross-compilation
-export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
-export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/lib/pkgconfig"
+echo "=== Setting up pkg-config ==="
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
+export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+
+echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
+echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
+
 mkdir -p /usr/local/lib/pkgconfig
 
 # 3) Build x264
