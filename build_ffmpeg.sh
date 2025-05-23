@@ -218,7 +218,62 @@ ls -d "$SYSROOT/usr/include/openssl" >/dev/null 2>&1 && echo "✅ OpenSSL header
 
 cd ..
 
-# 5) Build x264
+# 5) Build libsrtp2
+echo ""
+echo "🔒 =============== BUILDING LIBSRTP2 ==============="
+if [ ! -d "libsrtp" ]; then
+    echo "📥 Cloning libsrtp repository..."
+    git clone --depth 1 --branch v2.5.0 https://github.com/cisco/libsrtp.git
+fi
+cd libsrtp
+
+# Export cross-compiler tools for libsrtp2 build
+export CC=${CROSS_COMPILE}gcc
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
+
+echo "🔧 Building libsrtp2 with:"
+echo "🔧 CC=$CC"
+echo "🔧 AR=$AR"
+echo "🔧 RANLIB=$RANLIB"
+
+# Configure and build libsrtp2
+echo "⏳ Configuring libsrtp2..."
+CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+./configure \
+    --host=arm-linux-gnueabihf \
+    --enable-static \
+    --disable-shared \
+    --prefix="$SYSROOT/usr" >/dev/null 2>&1
+
+echo "⏳ Compiling libsrtp2..."
+make -j"$(nproc)" >/dev/null 2>&1
+echo "📦 Installing libsrtp2..."
+sudo make install >/dev/null 2>&1
+
+# Create libsrtp2.pc file
+echo "📝 Creating libsrtp2.pc..."
+sudo tee "$PKG_CONFIG_DIR/libsrtp2.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: libsrtp2
+Description: Secure Real-time Transport Protocol (SRTP) library
+Version: 2.5.0
+Libs: -L\${libdir} -lsrtp2
+Cflags: -I\${includedir}
+EOF
+
+echo "✅ Verifying libsrtp2 installation..."
+ls "$SYSROOT/usr/lib/libsrtp2.a" >/dev/null 2>&1 && echo "✅ libsrtp2 library found" || echo "❌ libsrtp2 library not found"
+ls "$SYSROOT/usr/include/srtp2" >/dev/null 2>&1 && echo "✅ libsrtp2 headers found" || echo "❌ libsrtp2 headers not found"
+
+cd ..
+
+# 6) Build x264
 echo ""
 echo "🎬 =============== BUILDING X264 ==============="
 if [ ! -d "x264" ]; then
@@ -302,7 +357,7 @@ cd ..
 
 cd ..
 
-# 6) Clone specific FFmpeg version
+# 7) Clone specific FFmpeg version
 echo ""
 echo "🎥 =============== CLONING FFMPEG ==============="
 FFMPEG_SRC="ffmpeg"
@@ -313,7 +368,7 @@ else
     echo "✅ FFmpeg already cloned"
 fi
 
-# 7) Prepare build environment
+# 8) Prepare build environment
 echo ""
 echo "🔧 =============== PREPARING BUILD ENVIRONMENT ==============="
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
@@ -328,7 +383,13 @@ else
     echo "⚠️  x264 not available - will build without libx264"
 fi
 
-# 8) Configure and build FFmpeg
+if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists libsrtp2 2>/dev/null; then
+    echo "✅ libsrtp2 ready for FFmpeg"
+else
+    echo "⚠️  libsrtp2 not available - will build without SRTP support"
+fi
+
+# 9) Configure and build FFmpeg
 cd build
 echo ""
 echo "🎥 =============== CONFIGURING FFMPEG ==============="
@@ -379,15 +440,17 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-version3 \
     --enable-openssl \
     --enable-zlib \
+    --enable-libsrtp \
+    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
-    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
     --enable-decoder=h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+    --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
-    --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
     --enable-protocol=http,https,tls,tcp,udp,file,rtp \
-    --enable-muxer=mjpeg,mp4,null,image2 \
+    --enable-muxer=mjpeg,mp4,null,image2,rtp \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi \
+    --enable-libx264 \
     $X264_CONFIGURE_FLAGS \
     --extra-cflags="$EXTRA_CFLAGS" \
     --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \

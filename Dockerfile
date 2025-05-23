@@ -133,6 +133,33 @@ RUN echo "🎬 Building x264..." && \
 	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/x264.pc && \
 	rm -rf /tmp/x264
 
+# 🔒 Build libsrtp2 (for SRTP support)
+RUN echo "🔒 Building libsrtp2..." && \
+	git clone --depth 1 --branch v2.5.0 https://github.com/cisco/libsrtp.git /tmp/libsrtp >/dev/null 2>&1 && \
+	cd /tmp/libsrtp && \
+	export CC=armv6-unknown-linux-gnueabihf-gcc && \
+	export AR=armv6-unknown-linux-gnueabihf-ar && \
+	export RANLIB=armv6-unknown-linux-gnueabihf-ranlib && \
+	export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
+	./configure \
+		--host=arm-linux-gnueabihf \
+		--enable-static \
+		--disable-shared \
+		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr >/dev/null && \
+	make -j$(nproc) >/dev/null && make install >/dev/null && \
+	# Create pkg-config file for libsrtp2
+	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "libdir=\${prefix}/lib" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "includedir=\${prefix}/include" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "Name: libsrtp2" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "Description: Secure Real-time Transport Protocol (SRTP) library" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "Version: 2.5.0" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "Libs: -L\${libdir} -lsrtp2" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	rm -rf /tmp/libsrtp
+
 # ============================================================================
 # Stage 3: FFmpeg Builder (Fast rebuild layer)
 # ============================================================================
@@ -172,6 +199,7 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-openssl \
 		--enable-zlib \
 		--enable-libx264 \
+		--enable-libsrtp \
 		--enable-encoder=libx264 \
 		--enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
 		--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \

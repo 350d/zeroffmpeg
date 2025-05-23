@@ -74,8 +74,9 @@ info: ## ℹ️  Show build information
 	@echo "ℹ️  ZeroFFmpeg Build Information:"
 	@echo "🎯 Target: ARMv6 (Raspberry Pi Zero)"
 	@echo "🔧 Base image: dockcross/linux-armv6"
-	@echo "📦 Dependencies: zlib, OpenSSL, x264"
+	@echo "📦 Dependencies: zlib, OpenSSL, x264, libsrtp2"
 	@echo "🎬 FFmpeg version: 6.1.1"
+	@echo "🔒 Security: HTTPS, SRTP support"
 	@echo "⚡ Expected startup: ~0.01 seconds"
 	@echo "📊 Expected size: ~6MB (static)"
 

@@ -53,6 +53,7 @@ For applications requiring:
 
 #### 🔐 **Security & Compression**
 - **OpenSSL** - Secure connections
+- **SRTP** - Secure Real-time Transport Protocol
 - **zlib** - Data compression
 
 ## 🏗️ Build Process
@@ -62,8 +63,9 @@ The build uses **cross-compilation** with GitHub Actions for consistent, reprodu
 ### 🛠️ **Dependencies Built from Source**
 1. **🗜️ zlib** - Compression library
 2. **🔐 OpenSSL 1.1.1** - Cryptography (with ARM cross-compilation fixes)
-3. **🎬 x264** - H.264 encoder/decoder  
-4. **🎥 FFmpeg 6.1.1** - Main application
+3. **🎬 x264** - H.264 encoder/decoder
+4. **🔒 libsrtp2** - Secure Real-time Transport Protocol library
+5. **🎥 FFmpeg 6.1.1** - Main application
 
 ### 🎯 **Target Platform**
 - **Architecture**: ARMv6 (Raspberry Pi Zero compatible)
@@ -99,6 +101,9 @@ chmod +x ffmpeg ffprobe
 
 # 📹 Stream to network (starts in 0.01s!)
 ./ffmpeg -f v4l2 -i /dev/video0 -c:v h264 -f rtp rtp://192.168.1.100:5004
+
+# 🔒 Secure SRTP streaming  
+./ffmpeg -f v4l2 -i /dev/video0 -c:v h264 -f rtp -srtp_out_suite AES_CM_128_HMAC_SHA1_80 -srtp_out_params <key> srtp://192.168.1.100:5004
 
 # 🎯 Basic motion detection
 ./ffmpeg -f v4l2 -i /dev/video0 -vf "showinfo,blackframe=threshold=32" -f null -

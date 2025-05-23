@@ -169,8 +169,8 @@ Layer 2: System pkgs   (Changes: Rarely)    Cache: Months
 Layer 3: zlib build    (Changes: Rarely)    Cache: Months
 Layer 4: OpenSSL build (Changes: Rarely)    Cache: Months
 Layer 5: x264 build    (Changes: Rarely)    Cache: Months
-Layer 6: FFmpeg clone  (Changes: Sometimes) Cache: Weeks
-Layer 7: Build script  (Changes: Often)     Cache: Hours
+Layer 6: libsrtp2 build(Changes: Rarely)    Cache: Months
+Layer 7: FFmpeg clone  (Changes: Sometimes) Cache: Weeks
 Layer 8: FFmpeg build  (Changes: Often)     Cache: None
 ```
 
