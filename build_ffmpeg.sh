@@ -141,7 +141,16 @@ STRIP="${CROSS_COMPILE}strip" \
     -Os
 
 echo "=== Checking generated Makefile ==="
-head -20 Makefile | grep -E "CC=|AR=" || echo "No CC/AR found in first 20 lines"
+echo "Looking for CC definition in Makefile:"
+grep -n "^CC=" Makefile || echo "No CC= line found"
+echo "Looking for any gcc references:"
+grep -n "gcc" Makefile | head -5 || echo "No gcc references found"
+
+# Fix the double prefix issue by post-processing the Makefile
+echo "=== Fixing double prefix in Makefile ==="
+sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unknown-linux-gnueabihf-/g" Makefile
+echo "After fix, checking for double prefix:"
+grep "armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-" Makefile || echo "No double prefix found - fixed!"
 
 make -j"$(nproc)" build_libs
 sudo make install_dev
