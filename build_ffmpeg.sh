@@ -3,26 +3,46 @@ set -euo pipefail
 
 # Debug: print environment information
 echo "=== Environment ==="
-env
-echo "=== PATH ==="
-echo "$PATH"
+env | sort
+
 echo "=== GCC version ==="
-gcc --version
+${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}gcc --version
+
 echo "=== pkg-config version ==="
 pkg-config --version
 
 # Static build flags
+env | grep PKG_CONFIG
 export PKG_CONFIG_ALL_STATIC=1
 export PKG_CONFIG_FLAGS="--static"
 
-# Set architecture flags for ARMv6 hard-float
-ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
-export CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert gnutls)"
-export LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
+# Architecture and toolchain prefixes
+CROSS_PREFIX=${CROSS_COMPILE:-armv6-unknown-linux-gnueabihf-}
+echo "Using cross-prefix: $CROSS_PREFIX"
+export CC=${CROSS_PREFIX}gcc
+export AR=${CROSS_PREFIX}ar
+export AS=${CROSS_PREFIX}as
+export LD=${CROSS_PREFIX}ld
+export NM=${CROSS_PREFIX}nm
+export RANLIB=${CROSS_PREFIX}ranlib
+export STRIP=${CROSS_PREFIX}strip
 
-# pkg-config for ARM
+# Set ARCHFLAGS for ARMv6 hard-float
+ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
+
+# pkg-config paths for ARM
 export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
-export PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig
+export PKG_CONFIG_LIBDIR=$PKG_CONFIG_PATH
+
+# Compute CFLAGS/LDFLAGS
+CFLAGS="$ARCH_FLAGS $(pkg-config $PKG_CONFIG_FLAGS --cflags libv4l2 libv4lconvert gnutls)"
+LDFLAGS="$(pkg-config $PKG_CONFIG_FLAGS --libs libv4l2 libv4lconvert gnutls) -static"
+export CFLAGS LDFLAGS
+
+echo "CFLAGS=$CFLAGS"
+echo "LDFLAGS=$LDFLAGS"
+
+
 
 # Define installation prefix
 PREFIX="$(pwd)/install"
@@ -35,7 +55,7 @@ cd ffmpeg
 # Configure FFmpeg for fully static ARMv6 build
 bash -x ./configure \
   --prefix="$PREFIX" \
-  --cross-prefix=arm-linux-gnueabihf- \
+  --cross-prefix=$CROSS_PREFIX \
   --arch=arm \
   --cpu=arm1176jzf-s \
   --target-os=linux \
