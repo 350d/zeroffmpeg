@@ -25,7 +25,11 @@ jobs:
             make \
             automake \
             autoconf \
-            libtool
+            libtool \
+            libx264-dev \
+            libv4l-dev \
+            libdrm-dev \
+            libgnutls28-dev
 
       - name: Setup environment
         run: |
@@ -41,15 +45,16 @@ jobs:
           pwd
           ls -la
           echo "=== Cross Compiler Directory ==="
-          ls -la /usr/xcc/arm-linux-gnueabi/
+          ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/
 
       - name: Make build script executable
         run: chmod +x build_ffmpeg.sh
 
       - name: Run cross-compilation
         run: |
-          export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
-          export PKG_CONFIG_LIBDIR="/usr/xcc/arm-linux-gnueabi/lib/pkgconfig"
+          export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/lib/arm-linux-gnueabihf/pkgconfig"
+          export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/lib/pkgconfig"
+          export CROSS_PREFIX=${CROSS_COMPILE}
           ./build_ffmpeg.sh
 
       - name: Check build artifacts

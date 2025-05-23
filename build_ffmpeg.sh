@@ -9,6 +9,9 @@ ${CROSS_COMPILE}gcc --version
 echo "=== Working directory ==="
 pwd
 ls -la
+echo "=== PKG Config paths ==="
+echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
 
 # 2) Build x264
 echo "=== Building x264 ==="
@@ -18,30 +21,29 @@ fi
 cd x264
 ./configure \
     --cross-prefix=${CROSS_COMPILE} \
-    --host=arm-linux \
+    --host=arm-linux-gnueabihf \
     --enable-static \
     --disable-cli \
     --disable-opencl \
     --disable-thread \
     --disable-asm \
-    --extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
+    --extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+    --prefix=/usr/local
 make clean || true
-make -j"$(nproc)"
+make -j"$(nproc)" V=1
 make install
 cd ..
 
-# 3) Clone latest FFmpeg if not exists
+# 3) Clone specific FFmpeg version
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
-    echo "Cloning latest FFmpeg..."
-    git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
+    echo "Cloning FFmpeg..."
+    git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
 # 4) Prepare build environment
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
-PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
-export PKG_CONFIG_PATH
 mkdir -p build
 
 # 5) Configure and build FFmpeg
@@ -49,7 +51,7 @@ cd build
 echo "=== Configuring FFmpeg ==="
 bash -x ../$FFMPEG_SRC/configure \
     --prefix="$PREFIX" \
-    --cross-prefix=$CROSS_COMPILE \
+    --cross-prefix=${CROSS_COMPILE} \
     --arch=arm \
     --target-os=linux \
     --enable-cross-compile \
@@ -93,13 +95,16 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-demuxer=image2 \
     --enable-demuxer=image2pipe \
     --enable-muxer=image2 \
-    --extra-cflags="$ARCH_FLAGS" \
-    --extra-ldflags="-static -L/usr/local/lib"
+    --extra-cflags="$ARCH_FLAGS $(pkg-config --cflags x264)" \
+    --extra-ldflags="-static -L/usr/local/lib $(pkg-config --libs x264)"
 
 echo "=== Building FFmpeg ==="
-make -j"$(nproc)"
+make -j"$(nproc)" V=1
 make install
 
 echo "=== Build complete ==="
 ls -la $PREFIX/bin/
 file $PREFIX/bin/ffmpeg
+echo "=== Checking FFmpeg dependencies ==="
+ldd $PREFIX/bin/ffmpeg || true
+${CROSS_COMPILE}readelf -d $PREFIX/bin/ffmpeg
