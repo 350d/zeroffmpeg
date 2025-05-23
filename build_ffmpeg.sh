@@ -10,19 +10,41 @@ echo "=== Working directory ==="
 pwd
 ls -la
 
-# 2) Clone latest FFmpeg if not exists
+# 2) Build x264
+echo "=== Building x264 ==="
+if [ ! -d "x264" ]; then
+    git clone --depth 1 https://code.videolan.org/videolan/x264.git
+fi
+cd x264
+./configure \
+    --cross-prefix=${CROSS_COMPILE} \
+    --host=arm-linux \
+    --enable-static \
+    --disable-cli \
+    --disable-opencl \
+    --disable-thread \
+    --disable-asm \
+    --extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
+make clean || true
+make -j"$(nproc)"
+make install
+cd ..
+
+# 3) Clone latest FFmpeg if not exists
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
     echo "Cloning latest FFmpeg..."
     git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 fi
 
-# 3) Prepare build environment
+# 4) Prepare build environment
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
+PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+export PKG_CONFIG_PATH
 mkdir -p build
 
-# 4) Configure and build FFmpeg
+# 5) Configure and build FFmpeg
 cd build
 echo "=== Configuring FFmpeg ==="
 bash -x ../$FFMPEG_SRC/configure \
@@ -72,7 +94,7 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-demuxer=image2pipe \
     --enable-muxer=image2 \
     --extra-cflags="$ARCH_FLAGS" \
-    --extra-ldflags="-static"
+    --extra-ldflags="-static -L/usr/local/lib"
 
 echo "=== Building FFmpeg ==="
 make -j"$(nproc)"
