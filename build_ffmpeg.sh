@@ -30,11 +30,21 @@ export PKG_CONFIG_PATH="$PKG_CONFIG_DIR"
 export PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR"
 export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 
+# Create a cross-compile aware pkg-config wrapper
+PKG_CONFIG_CROSS="${CROSS_COMPILE}pkg-config"
+if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
+    echo "Creating pkg-config wrapper for cross-compilation"
+    PKG_CONFIG_CROSS="pkg-config"
+fi
+
+export PKG_CONFIG="$PKG_CONFIG_CROSS"
+
 # Ensure library paths are correct
 export LIBRARY_PATH="$SYSROOT/usr/lib:$SYSROOT/lib"
 export C_INCLUDE_PATH="$SYSROOT/usr/include"
 export CPLUS_INCLUDE_PATH="$SYSROOT/usr/include"
 
+echo "PKG_CONFIG=$PKG_CONFIG"
 echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
 echo "PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
 echo "PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
@@ -80,6 +90,18 @@ echo "=== Verifying x264.pc ==="
 cat "$PKG_CONFIG_DIR/x264.pc"
 ls -la "$PKG_CONFIG_DIR"
 
+# Test pkg-config with x264
+echo "=== Testing pkg-config with x264 ==="
+echo "PKG_CONFIG command: $PKG_CONFIG"
+echo "Testing x264 package:"
+$PKG_CONFIG --exists x264 && echo "x264 package found" || echo "x264 package NOT found"
+$PKG_CONFIG --cflags x264 2>/dev/null || echo "Failed to get cflags"
+$PKG_CONFIG --libs x264 2>/dev/null || echo "Failed to get libs"
+echo "Available packages:"
+$PKG_CONFIG --list-all | grep x264 || echo "No x264 in package list"
+
+cd ..
+
 # Create libv4l2.pc manually
 cat > "$PKG_CONFIG_DIR/libv4l2.pc" << EOF
 prefix=$SYSROOT/usr
@@ -114,11 +136,11 @@ mkdir -p build
 
 # Debug pkg-config
 echo "=== Testing pkg-config for x264 ==="
-pkg-config --debug --exists x264
-pkg-config --list-all
+echo "PKG_CONFIG: $PKG_CONFIG"
+$PKG_CONFIG --exists x264 && echo "x264 found via pkg-config" || echo "x264 NOT found via pkg-config"
 echo "=== x264 pkg-config output ==="
-pkg-config --cflags x264
-pkg-config --libs x264
+$PKG_CONFIG --cflags x264 2>/dev/null || echo "No cflags available"
+$PKG_CONFIG --libs x264 2>/dev/null || echo "No libs available"
 echo "=== x264 library check ==="
 ls -la $SYSROOT/usr/lib/libx264* || echo "No x264 libraries found"
 ls -la $SYSROOT/usr/include/x264* || echo "No x264 headers found"
@@ -138,8 +160,21 @@ ls -la "$SYSROOT/usr/lib/libx264*" || echo "x264 not found"
 echo "Checking compiler with sysroot:"
 ${CROSS_COMPILE}gcc --sysroot="$SYSROOT" --print-sysroot
 
+# Check if x264 is available via pkg-config
+X264_AVAILABLE=0
+if $PKG_CONFIG --exists x264; then
+    echo "x264 found via pkg-config - including in build"
+    X264_AVAILABLE=1
+    X264_CONFIGURE_FLAGS="--enable-libx264 --enable-encoder=libx264"
+else
+    echo "x264 NOT found via pkg-config - building without libx264"
+    X264_CONFIGURE_FLAGS="--disable-libx264"
+fi
+
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
+PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+PKG_CONFIG="$PKG_CONFIG" \
 bash -x ../$FFMPEG_SRC/configure \
     --prefix="$PREFIX" \
     --cross-prefix=${CROSS_COMPILE} \
@@ -175,8 +210,8 @@ bash -x ../$FFMPEG_SRC/configure \
     --enable-indev=lavfi \
     --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
     --enable-muxer=mp4,null \
-    --enable-encoder=libx264,rawvideo \
-    --enable-libx264 \
+    --enable-encoder=rawvideo \
+    $X264_CONFIGURE_FLAGS \
     --enable-zlib \
     --enable-encoder=aac \
     --enable-demuxer=aac,mp3,flv,ogg,opus,adts \
