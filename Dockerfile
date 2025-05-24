@@ -143,8 +143,17 @@ RUN echo "🔒 Building libsrtp2..." && \
 	export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
 	./configure \
 		--host=arm-linux-gnueabihf \
-		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr >/dev/null && \
-	make -j$(nproc) >/dev/null && make install >/dev/null && \
+		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr || \
+	(echo "❌ libsrtp2 configure failed!" && \
+	echo "📋 Configure output:" && \
+	cat config.log 2>/dev/null || echo "No config.log found" && \
+	exit 1) && \
+	make -j$(nproc) || \
+	(echo "❌ libsrtp2 build failed!" && exit 1) && \
+	make install || \
+	(echo "❌ libsrtp2 install failed!" && exit 1) && \
+	# Verify libsrtp2 was built
+	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/libsrtp2* && \
 	# Create pkg-config file for libsrtp2
 	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
 	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
@@ -156,6 +165,7 @@ RUN echo "🔒 Building libsrtp2..." && \
 	echo "Version: 2.5.0" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
 	echo "Libs: -L\${libdir} -lsrtp2" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
 	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libsrtp2.pc && \
+	echo "✅ libsrtp2 build complete!" && \
 	rm -rf /tmp/libsrtp
 
 # ============================================================================
@@ -164,13 +174,29 @@ RUN echo "🔒 Building libsrtp2..." && \
 FROM deps-builder AS ffmpeg-builder
 
 # 📥 Clone FFmpeg (this layer may change more often)  
-RUN echo "📥 Cloning FFmpeg..." && \
-	git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git /tmp/ffmpeg >/dev/null 2>&1
+RUN echo "📥 Cloning FFmpeg latest..." && \
+	git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git /tmp/ffmpeg >/dev/null 2>&1
 
 # 🎥 Build FFmpeg directly
 WORKDIR /tmp
 
 # Dependencies are ready from previous stages
+
+# Verify dependencies before FFmpeg configure
+RUN echo "🔍 Verifying dependencies..." && \
+	echo "📋 Available libraries:" && \
+	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/ | grep -E "(libz|libssl|libcrypto|libx264|libsrtp2)" && \
+	echo "📋 Available pkg-config files:" && \
+	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/ && \
+	echo "📋 Testing pkg-config..." && \
+	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
+	export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
+	export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" && \
+	pkg-config --exists zlib && echo "✅ zlib pkg-config OK" || echo "❌ zlib pkg-config failed" && \
+	pkg-config --exists libssl && echo "✅ libssl pkg-config OK" || echo "❌ libssl pkg-config failed" && \
+	pkg-config --exists libcrypto && echo "✅ libcrypto pkg-config OK" || echo "❌ libcrypto pkg-config failed" && \
+	pkg-config --exists x264 && echo "✅ x264 pkg-config OK" || echo "❌ x264 pkg-config failed" && \
+	pkg-config --exists libsrtp2 && echo "✅ libsrtp2 pkg-config OK" || echo "❌ libsrtp2 pkg-config failed"
 
 # Configure FFmpeg
 RUN echo "⚙️  Configuring FFmpeg..." && \
@@ -197,11 +223,11 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-openssl \
 		--enable-zlib \
 		--enable-libx264 \
-		--enable-libsrtp \
+
 		--enable-encoder=libx264 \
 		--enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
 		--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
-		--enable-decoder=h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+		--enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
 		--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
 		--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
 		--enable-protocol=http,https,tls,tcp,udp,file,rtp \
@@ -212,10 +238,13 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
 		--pkg-config=pkg-config \
 		--pkg-config-flags="--static" \
-		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" || \
+		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" 2>&1 | tee configure.log && \
+	echo "✅ FFmpeg configure successful!" || \
 	(echo "❌ FFmpeg configure failed!" && \
-	echo "📋 Config log:" && \
-	tail -50 ffbuild/config.log 2>/dev/null || echo "No config.log found" && \
+	echo "📋 Configure output (last 100 lines):" && \
+	tail -100 configure.log && \
+	echo "📋 Config log (last 100 lines):" && \
+	tail -100 ffbuild/config.log 2>/dev/null || echo "No config.log found" && \
 	exit 1)
 
 # Build and Install FFmpeg

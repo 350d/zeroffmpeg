@@ -24,7 +24,7 @@ For applications requiring:
 **ZeroFFmpeg** is a minimal, static FFmpeg build that includes only essential components:
 
 - **⚡ Startup time: ~0.01 seconds (600x faster!)**
-- **📦 Binary size: ~6MB (static, no dependencies)**
+- **📦 Binary size: ~8MB (static, no dependencies)**
 - **🎯 Optimized for ARMv6 (Raspberry Pi Zero)**
 - **🔒 Includes only needed codecs and protocols**
 
@@ -65,7 +65,7 @@ The build uses **cross-compilation** with GitHub Actions for consistent, reprodu
 2. **🔐 OpenSSL 1.1.1** - Cryptography (with ARM cross-compilation fixes)
 3. **🎬 x264** - H.264 encoder/decoder
 4. **🔒 libsrtp2** - Secure Real-time Transport Protocol library
-5. **🎥 FFmpeg 6.1.1** - Main application
+5. **🎥 FFmpeg Latest** - Main application (latest git version)
 
 ### 🎯 **Target Platform**
 - **Architecture**: ARMv6 (Raspberry Pi Zero compatible)

@@ -360,8 +360,8 @@ echo ""
 echo "🎥 =============== CLONING FFMPEG ==============="
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
-    echo "📥 Cloning FFmpeg v6.1.1..."
-    git clone --depth 1 --branch n6.1.1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
+    echo "📥 Cloning FFmpeg latest..."
+    git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
 else
     echo "✅ FFmpeg already cloned"
 fi
@@ -438,10 +438,9 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-version3 \
     --enable-openssl \
     --enable-zlib \
-    --enable-libsrtp \
     --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
-    --enable-decoder=h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+    --enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
     --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
     --enable-protocol=http,https,tls,tcp,udp,file,rtp \
@@ -449,6 +448,7 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi \
     --enable-libx264 \
+
     $X264_CONFIGURE_FLAGS \
     --extra-cflags="$EXTRA_CFLAGS" \
     --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
