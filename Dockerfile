@@ -218,6 +218,24 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--disable-debug \
 		--disable-everything \
 
+		#--enable-gpl \
+		#--enable-nonfree \
+		#--enable-version3 \
+		#--enable-openssl \
+		#--enable-zlib \
+		#--enable-libx264 \
+		#--enable-encoder=libx264 \
+		#--enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
+		#--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
+		#--enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+		#--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
+		#--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
+		#--enable-protocol=http,https,tls,tcp,udp,file,rtp \
+		#--enable-muxer=mjpeg,mp4,null,image2 \
+		#--enable-bsf=mjpeg2jpeg \
+		#--enable-indev=lavfi \
+
+		--enable-gpl \
 		--enable-zlib \
 		--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
 		--enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \

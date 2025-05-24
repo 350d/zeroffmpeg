@@ -467,6 +467,7 @@ PKG_CONFIG="$PKG_CONFIG" \
     --disable-debug \
     --disable-everything \
 
+    --enable-gpl \
     --enable-zlib \
     --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
