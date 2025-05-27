@@ -466,7 +466,6 @@ PKG_CONFIG="$PKG_CONFIG" \
     --disable-doc \
     --disable-debug \
     --disable-everything \
-
     --enable-gpl \
     --enable-nonfree \
     --enable-version3 \
@@ -477,12 +476,11 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
     --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
-    --enable-protocol=pipe,http,https,tls,tcp,udp,file,rtp \
+    --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
     --enable-muxer=mjpeg,mp4,null,image2,rtp \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi \
     --enable-libx264 \
-
     $X264_CONFIGURE_FLAGS \
     --extra-cflags="$EXTRA_CFLAGS" \
     --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \

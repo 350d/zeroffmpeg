@@ -243,7 +243,7 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
 		--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
 		--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
-		--enable-protocol=pipe,http,https,tls,tcp,udp,file,rtp \
+		--enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
 		--enable-muxer=mjpeg,mp4,null,image2 \
 		--enable-bsf=mjpeg2jpeg \
 		--enable-indev=lavfi \
