@@ -199,6 +199,20 @@ RUN echo "🔍 Verifying dependencies..." && \
 	pkg-config --exists libsrtp2 && echo "✅ libsrtp2 pkg-config OK" || echo "❌ libsrtp2 pkg-config failed"
 
 # Configure FFmpeg
+
+#--enable-gpl \
+#--enable-zlib \
+#--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
+#--enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
+#--enable-decoder=h264,mjpeg \
+#--enable-encoder=mjpeg,rawvideo,wrapped_avframe \
+#--enable-parser=h264,mjpeg \
+#--enable-protocol=pipe,http,tcp,udp,file,rtp \
+#--enable-muxer=mjpeg,mp4,null,image2,rtp \
+#--enable-bsf=mjpeg2jpeg \
+#--enable-indev=lavfi \
+#--enable-libx264 \
+
 RUN echo "⚙️  Configuring FFmpeg..." && \
 	mkdir -p /tmp/install && \
 	mkdir -p build && cd build && \
@@ -217,7 +231,6 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--disable-doc \
 		--disable-debug \
 		--disable-everything \
-
 		--enable-gpl \
 		--enable-nonfree \
 		--enable-version3 \
@@ -230,24 +243,10 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
 		--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
 		--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
-		--enable-protocol=http,https,tls,tcp,udp,file,rtp \
+		--enable-protocol=pipe,http,https,tls,tcp,udp,file,rtp \
 		--enable-muxer=mjpeg,mp4,null,image2 \
 		--enable-bsf=mjpeg2jpeg \
 		--enable-indev=lavfi \
-
-		#--enable-gpl \
-		#--enable-zlib \
-		#--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
-		#--enable-demuxer=rtp,rtsp,h264,mjpeg,image2,image2pipe \
-		#--enable-decoder=h264,mjpeg \
-		#--enable-encoder=mjpeg,rawvideo,wrapped_avframe \
-		#--enable-parser=h264,mjpeg \
-		#--enable-protocol=http,tcp,udp,file,rtp \
-		#--enable-muxer=mjpeg,mp4,null,image2,rtp \
-		#--enable-bsf=mjpeg2jpeg \
-		#--enable-indev=lavfi \
-		#--enable-libx264 \
-
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
 		--pkg-config=pkg-config \

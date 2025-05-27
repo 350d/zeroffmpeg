@@ -430,7 +430,7 @@ echo "⏳ Configuring FFmpeg..."
 #--enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
 #--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
 #--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
-#--enable-protocol=http,https,tls,tcp,udp,file,rtp \
+#--enable-protocol=pipe,http,https,tls,tcp,udp,file,rtp \
 #--enable-muxer=mjpeg,mp4,null,image2,rtp \
 #--enable-bsf=mjpeg2jpeg \
 #--enable-indev=lavfi \
@@ -444,7 +444,7 @@ echo "⏳ Configuring FFmpeg..."
 #--enable-decoder=h264,mjpeg \
 #--enable-encoder=mjpeg,rawvideo,wrapped_avframe \
 #--enable-parser=h264,mjpeg \
-#--enable-protocol=http,tcp,udp,file,rtp \
+#--enable-protocol=pipe,http,tcp,udp,file,rtp \
 #--enable-muxer=mjpeg,mp4,null,image2,rtp \
 #--enable-bsf=mjpeg2jpeg \
 #--enable-indev=lavfi \
@@ -477,7 +477,7 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
     --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
-    --enable-protocol=http,https,tls,tcp,udp,file,rtp \
+    --enable-protocol=pipe,http,https,tls,tcp,udp,file,rtp \
     --enable-muxer=mjpeg,mp4,null,image2,rtp \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi \
