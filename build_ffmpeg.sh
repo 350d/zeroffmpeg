@@ -477,7 +477,7 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
     --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
-    --enable-muxer=mjpeg,mp4,null,image2,rtp \
+    --enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi \
     --enable-libx264 \

@@ -244,7 +244,7 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
 		--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
 		--enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
-		--enable-muxer=mjpeg,mp4,null,image2 \
+		--enable-muxer=rtsp,mjpeg,mp4,null,image2 \
 		--enable-bsf=mjpeg2jpeg \
 		--enable-indev=lavfi \
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
