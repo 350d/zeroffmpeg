@@ -53,6 +53,12 @@ For applications requiring:
 - **Motion detection** - Analysis filters
 - **FPS control** - Frame rate management
 
+#### 📹 **Hardware Acceleration & Camera Support**
+- **V4L2** - Video4Linux2 camera interface
+- **DRM/KMS** - Direct Rendering Manager for hardware acceleration
+- **h264_v4l2m2m** - Hardware H.264 encoding/decoding on Raspberry Pi
+- **VC4** - VideoCore IV GPU support for Pi Zero
+
 #### 🔐 **Security & Compression**
 - **OpenSSL** - Secure connections
 - **zlib** - Data compression
@@ -64,8 +70,11 @@ The build uses **cross-compilation** with GitHub Actions for consistent, reprodu
 ### 🛠️ **Dependencies Built from Source**
 1. **🗜️ zlib** - Compression library
 2. **🔐 OpenSSL 1.1.1** - Cryptography (with ARM cross-compilation fixes)
-3. **🎬 x264** - H.264 encoder/decoder
-4. **🎥 FFmpeg Latest** - Main application (latest git version)
+3. **🔒 libsrtp2** - Secure Real-time Transport Protocol
+4. **📹 libv4l2** - Video4Linux2 camera interface library
+5. **🖥️ libdrm** - Direct Rendering Manager for hardware acceleration
+6. **🎬 x264** - H.264 encoder/decoder
+7. **🎥 FFmpeg Latest** - Main application (latest git version)
 
 ### 🎯 **Target Platform**
 - **Architecture**: ARMv6 (Raspberry Pi Zero compatible)
@@ -104,6 +113,15 @@ chmod +x ffmpeg ffprobe
 
 # 🎯 Basic motion detection
 ./ffmpeg -f v4l2 -i /dev/video0 -vf "showinfo,blackframe=threshold=32" -f null -
+
+# 🚀 Hardware-accelerated H.264 encoding (Pi Zero with GPU)
+./ffmpeg -f v4l2 -i /dev/video0 -c:v h264_v4l2m2m -b:v 1M output.mp4
+
+# 📹 Hardware-accelerated streaming with low latency
+./ffmpeg -f v4l2 -i /dev/video0 -c:v h264_v4l2m2m -preset ultrafast -tune zerolatency -f rtp rtp://192.168.1.100:5004
+
+# 🎬 Convert existing video using hardware acceleration
+./ffmpeg -i input.mp4 -c:v h264_v4l2m2m -b:v 2M -c:a aac output.mp4
 ```
 
 ## 🎯 Real-World Example: IP Camera with Motion Detection

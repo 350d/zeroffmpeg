@@ -35,9 +35,9 @@ make extract
 | Command | Description | Time | Use Case |
 |---------|-------------|------|----------|
 | `make help` | 📋 Show all available commands | Instant | Learning |
-| `make build-deps` | 📦 Cache dependencies (zlib, OpenSSL, x264) | 20-30 min | First setup |
+| `make build-deps` | 📦 Cache dependencies (zlib, OpenSSL, libsrtp2, libv4l2, libdrm, x264) | 25-35 min | First setup |
 | `make build-ffmpeg` | ⚡ Fast FFmpeg build using cache | 2-5 min | Development |
-| `make build` | 🏗️ Full build (all stages) | 25-35 min | Clean rebuild |
+| `make build` | 🏗️ Full build (all stages) | 30-40 min | Clean rebuild |
 | `make extract` | 📤 Get binaries from Docker | 10 sec | Get results |
 | `make test` | 🧪 Test built FFmpeg | 5 sec | Verification |
 | `make clean` | 🧹 Clean up images | 30 sec | Cleanup |
@@ -170,8 +170,10 @@ Layer 3: zlib build    (Changes: Rarely)    Cache: Months
 Layer 4: OpenSSL build (Changes: Rarely)    Cache: Months
 Layer 5: x264 build    (Changes: Rarely)    Cache: Months
 Layer 6: libsrtp2 build(Changes: Rarely)    Cache: Months
-Layer 7: FFmpeg clone  (Changes: Sometimes) Cache: Weeks
-Layer 8: FFmpeg build  (Changes: Often)     Cache: None
+Layer 7: libv4l2 build (Changes: Rarely)    Cache: Months
+Layer 8: libdrm build  (Changes: Rarely)    Cache: Months
+Layer 9: FFmpeg clone  (Changes: Sometimes) Cache: Weeks
+Layer 10: FFmpeg build (Changes: Often)     Cache: None
 ```
 
 **Result**: 90% of the build is cached most of the time! 🎉

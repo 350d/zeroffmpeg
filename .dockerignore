@@ -48,4 +48,5 @@ ffmpeg/
 
 # Only include what we need
 !build_ffmpeg.sh
-!Dockerfile 
+!Dockerfile
+!test_hardware.sh 

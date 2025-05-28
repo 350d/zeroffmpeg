@@ -41,6 +41,16 @@ test: ## 🧪 Test the built FFmpeg
 	docker run --rm zeroffmpeg:latest ./ffmpeg -version
 	@echo "✅ FFmpeg is working!"
 
+test-hardware: ## 🚀 Test hardware acceleration features
+	@echo "🚀 Testing hardware acceleration features..."
+	@if [ -f "./output/ffmpeg" ]; then \
+		./test_hardware.sh; \
+	elif [ -f "./ffmpeg" ]; then \
+		./test_hardware.sh; \
+	else \
+		echo "❌ FFmpeg binary not found! Run 'make extract' first."; \
+	fi
+
 clean: ## 🧹 Clean up Docker images and containers
 	@echo "🧹 Cleaning up..."
 	docker rmi zeroffmpeg:latest zeroffmpeg-deps:latest zeroffmpeg-builder:latest 2>/dev/null || true
@@ -74,9 +84,10 @@ info: ## ℹ️  Show build information
 	@echo "ℹ️  ZeroFFmpeg Build Information:"
 	@echo "🎯 Target: ARMv6 (Raspberry Pi Zero)"
 	@echo "🔧 Base image: dockcross/linux-armv6"
-	@echo "📦 Dependencies: zlib, OpenSSL, x264"
+	@echo "📦 Dependencies: zlib, OpenSSL, libsrtp2, libv4l2, libdrm, x264"
 	@echo "🎬 FFmpeg version: Latest (git)"
 	@echo "🔒 Security: HTTPS support"
+	@echo "📹 Hardware: V4L2 cameras, DRM/KMS acceleration"
 	@echo "⚡ Expected startup: ~0.01 seconds"
 	@echo "📊 Expected size: ~8MB (static)"
 

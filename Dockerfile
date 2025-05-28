@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	libv4l-dev v4l-utils libdrm-dev \
 	# Image libraries  
 	libjpeg-dev libpng-dev \
+	# Additional tools for V4L2 and DRM builds
+	meson ninja-build python3-mako gettext \
 	# Cleanup to reduce layer size
 	&& rm -rf /var/lib/apt/lists/* \
 	&& apt-get clean
@@ -168,6 +170,92 @@ RUN echo "🔒 Building libsrtp2..." && \
 	echo "✅ libsrtp2 build complete!" && \
 	rm -rf /tmp/libsrtp
 
+# 📹 Build libv4l2 (for V4L2 camera support)
+RUN echo "📹 Building libv4l2..." && \
+	git clone --depth 1 --branch v4l-utils-1.24.1 https://git.linuxtv.org/v4l-utils.git /tmp/v4l-utils >/dev/null 2>&1 && \
+	cd /tmp/v4l-utils && \
+	export CC=armv6-unknown-linux-gnueabihf-gcc && \
+	export CXX=armv6-unknown-linux-gnueabihf-g++ && \
+	export AR=armv6-unknown-linux-gnueabihf-ar && \
+	export RANLIB=armv6-unknown-linux-gnueabihf-ranlib && \
+	export STRIP=armv6-unknown-linux-gnueabihf-strip && \
+	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
+	export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
+	export CXXFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
+	./bootstrap.sh >/dev/null 2>&1 && \
+	./configure \
+		--host=arm-linux-gnueabihf \
+		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr \
+		--disable-shared \
+		--enable-static \
+		--disable-v4l-utils \
+		--disable-qv4l2 \
+		--disable-qvidcap \
+		--without-libudev >/dev/null 2>&1 && \
+	make -j$(nproc) >/dev/null 2>&1 && \
+	make install >/dev/null 2>&1 && \
+	# Create pkg-config file for libv4l2
+	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "libdir=\${prefix}/lib" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "includedir=\${prefix}/include" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "Name: libv4l2" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "Description: Video4Linux2 library" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "Version: 1.24.1" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "Libs: -L\${libdir} -lv4l2 -lv4lconvert" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libv4l2.pc && \
+	echo "✅ libv4l2 build complete!" && \
+	rm -rf /tmp/v4l-utils
+
+# 🖥️ Build libdrm (for DRM/KMS hardware acceleration)
+RUN echo "🖥️ Building libdrm..." && \
+	git clone --depth 1 --branch libdrm-2.4.115 https://gitlab.freedesktop.org/mesa/drm.git /tmp/libdrm >/dev/null 2>&1 && \
+	cd /tmp/libdrm && \
+	export CC=armv6-unknown-linux-gnueabihf-gcc && \
+	export CXX=armv6-unknown-linux-gnueabihf-g++ && \
+	export AR=armv6-unknown-linux-gnueabihf-ar && \
+	export RANLIB=armv6-unknown-linux-gnueabihf-ranlib && \
+	export STRIP=armv6-unknown-linux-gnueabihf-strip && \
+	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
+	export CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
+	export CXXFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" && \
+	./autogen.sh >/dev/null 2>&1 && \
+	./configure \
+		--host=arm-linux-gnueabihf \
+		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr \
+		--disable-shared \
+		--enable-static \
+		--disable-intel \
+		--disable-radeon \
+		--disable-amdgpu \
+		--disable-nouveau \
+		--disable-vmwgfx \
+		--disable-omap-experimental-api \
+		--disable-exynos-experimental-api \
+		--disable-freedreno \
+		--disable-tegra-experimental-api \
+		--enable-vc4 \
+		--disable-etnaviv-experimental-api \
+		--disable-cairo-tests \
+		--disable-manpages \
+		--disable-valgrind >/dev/null 2>&1 && \
+	make -j$(nproc) >/dev/null 2>&1 && \
+	make install >/dev/null 2>&1 && \
+	# Create pkg-config file for libdrm
+	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "libdir=\${prefix}/lib" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "includedir=\${prefix}/include" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "Name: libdrm" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "Description: Userspace interface to kernel DRM services" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "Version: 2.4.115" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "Libs: -L\${libdir} -ldrm" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "Cflags: -I\${includedir} -I\${includedir}/libdrm" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libdrm.pc && \
+	echo "✅ libdrm build complete!" && \
+	rm -rf /tmp/libdrm
+
 # ============================================================================
 # Stage 3: FFmpeg Builder (Fast rebuild layer)
 # ============================================================================
@@ -185,7 +273,7 @@ WORKDIR /tmp
 # Verify dependencies before FFmpeg configure
 RUN echo "🔍 Verifying dependencies..." && \
 	echo "📋 Available libraries:" && \
-	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/ | grep -E "(libz|libssl|libcrypto|libx264|libsrtp2)" && \
+	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/ | grep -E "(libz|libssl|libcrypto|libx264|libsrtp2|libv4l2|libdrm)" && \
 	echo "📋 Available pkg-config files:" && \
 	ls -la /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/ && \
 	echo "📋 Testing pkg-config..." && \
@@ -196,7 +284,9 @@ RUN echo "🔍 Verifying dependencies..." && \
 	pkg-config --exists libssl && echo "✅ libssl pkg-config OK" || echo "❌ libssl pkg-config failed" && \
 	pkg-config --exists libcrypto && echo "✅ libcrypto pkg-config OK" || echo "❌ libcrypto pkg-config failed" && \
 	pkg-config --exists x264 && echo "✅ x264 pkg-config OK" || echo "❌ x264 pkg-config failed" && \
-	pkg-config --exists libsrtp2 && echo "✅ libsrtp2 pkg-config OK" || echo "❌ libsrtp2 pkg-config failed"
+	pkg-config --exists libsrtp2 && echo "✅ libsrtp2 pkg-config OK" || echo "❌ libsrtp2 pkg-config failed" && \
+	pkg-config --exists libv4l2 && echo "✅ libv4l2 pkg-config OK" || echo "❌ libv4l2 pkg-config failed" && \
+	pkg-config --exists libdrm && echo "✅ libdrm pkg-config OK" || echo "❌ libdrm pkg-config failed"
 
 # Configure FFmpeg
 
@@ -237,16 +327,17 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-openssl \
 		--enable-zlib \
 		--enable-libx264 \
-		--enable-encoder=libx264 \
+		--enable-libv4l2 --enable-libdrm \
+		--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
 		--enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
-		--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe \
 		--enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+		--enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
 		--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
-		--enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe \
 		--enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
-		--enable-muxer=rtsp,mjpeg,mp4,null,image2 \
+		--enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp \
 		--enable-bsf=mjpeg2jpeg \
-		--enable-indev=lavfi \
+		--enable-indev=lavfi,v4l2 \
+		--enable-outdev=v4l2 \
 		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
 		--pkg-config=pkg-config \

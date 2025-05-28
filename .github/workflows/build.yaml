@@ -1,10 +1,10 @@
-name: 🎬 Build FFmpeg for Raspberry Pi Zero 🥧
+name: 🎬 Build FFmpeg for Raspberry Pi Zero 🥧 with Hardware Acceleration 📹
 
 on: [workflow_dispatch]
 
 jobs:
   build:
-    name: 🚀 Cross-compile FFmpeg for ARMv6
+    name: 🚀 Cross-compile FFmpeg for ARMv6 with V4L2/DRM support
     runs-on: ubuntu-latest
 
     steps:

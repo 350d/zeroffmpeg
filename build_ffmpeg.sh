@@ -355,7 +355,151 @@ cd ..
 
 cd ..
 
-# 7) Clone specific FFmpeg version
+# 7) Build libv4l2 (for V4L2 camera support)
+echo ""
+echo "📹 =============== BUILDING LIBV4L2 ==============="
+if [ ! -d "v4l-utils" ]; then
+    echo "📥 Cloning v4l-utils repository..."
+    git clone --depth 1 --branch v4l-utils-1.24.1 https://git.linuxtv.org/v4l-utils.git v4l-utils
+fi
+cd v4l-utils
+
+# Export cross-compiler tools for libv4l2 build
+export CC=${CROSS_COMPILE}gcc
+export CXX=${CROSS_COMPILE}g++
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
+
+echo "🔧 Building libv4l2 with:"
+echo "🔧 CC=$CC"
+echo "🔧 CXX=$CXX"
+echo "🔧 AR=$AR"
+echo "🔧 RANLIB=$RANLIB"
+
+# Configure and build libv4l2
+echo "⏳ Configuring libv4l2..."
+./bootstrap.sh >/dev/null 2>&1
+CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+CXXFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
+PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
+PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+./configure \
+    --host=arm-linux-gnueabihf \
+    --prefix="$SYSROOT/usr" \
+    --disable-shared \
+    --enable-static \
+    --disable-v4l-utils \
+    --disable-qv4l2 \
+    --disable-qvidcap \
+    --without-libudev >/dev/null 2>&1
+
+echo "⏳ Compiling libv4l2..."
+make -j"$(nproc)" >/dev/null 2>&1
+echo "📦 Installing libv4l2..."
+sudo make install >/dev/null 2>&1
+
+# Create libv4l2.pc file
+echo "📝 Creating libv4l2.pc..."
+sudo tee "$PKG_CONFIG_DIR/libv4l2.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: libv4l2
+Description: Video4Linux2 library
+Version: 1.24.1
+Libs: -L\${libdir} -lv4l2 -lv4lconvert
+Cflags: -I\${includedir}
+EOF
+
+echo "✅ Verifying libv4l2 installation..."
+ls "$SYSROOT/usr/lib/libv4l2.a" >/dev/null 2>&1 && echo "✅ libv4l2 library found" || echo "❌ libv4l2 library not found"
+ls "$SYSROOT/usr/include/libv4l2.h" >/dev/null 2>&1 && echo "✅ libv4l2 headers found" || echo "❌ libv4l2 headers not found"
+
+cd ..
+
+# 8) Build libdrm (for DRM/KMS hardware acceleration)
+echo ""
+echo "🖥️ =============== BUILDING LIBDRM ==============="
+if [ ! -d "libdrm" ]; then
+    echo "📥 Cloning libdrm repository..."
+    git clone --depth 1 --branch libdrm-2.4.115 https://gitlab.freedesktop.org/mesa/drm.git libdrm
+fi
+cd libdrm
+
+# Export cross-compiler tools for libdrm build
+export CC=${CROSS_COMPILE}gcc
+export CXX=${CROSS_COMPILE}g++
+export AR=${CROSS_COMPILE}ar
+export RANLIB=${CROSS_COMPILE}ranlib
+export STRIP=${CROSS_COMPILE}strip
+
+echo "🔧 Building libdrm with:"
+echo "🔧 CC=$CC"
+echo "🔧 CXX=$CXX"
+echo "🔧 AR=$AR"
+echo "🔧 RANLIB=$RANLIB"
+
+# Configure and build libdrm
+echo "⏳ Configuring libdrm..."
+./autogen.sh >/dev/null 2>&1
+CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+CXXFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
+PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
+PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
+PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
+./configure \
+    --host=arm-linux-gnueabihf \
+    --prefix="$SYSROOT/usr" \
+    --disable-shared \
+    --enable-static \
+    --disable-intel \
+    --disable-radeon \
+    --disable-amdgpu \
+    --disable-nouveau \
+    --disable-vmwgfx \
+    --disable-omap-experimental-api \
+    --disable-exynos-experimental-api \
+    --disable-freedreno \
+    --disable-tegra-experimental-api \
+    --enable-vc4 \
+    --disable-etnaviv-experimental-api \
+    --disable-cairo-tests \
+    --disable-manpages \
+    --disable-valgrind >/dev/null 2>&1
+
+echo "⏳ Compiling libdrm..."
+make -j"$(nproc)" >/dev/null 2>&1
+echo "📦 Installing libdrm..."
+sudo make install >/dev/null 2>&1
+
+# Create libdrm.pc file
+echo "📝 Creating libdrm.pc..."
+sudo tee "$PKG_CONFIG_DIR/libdrm.pc" << EOF
+prefix=$SYSROOT/usr
+exec_prefix=\${prefix}
+libdir=$SYSROOT/usr/lib
+includedir=$SYSROOT/usr/include
+
+Name: libdrm
+Description: Userspace interface to kernel DRM services
+Version: 2.4.115
+Libs: -L\${libdir} -ldrm
+Cflags: -I\${includedir} -I\${includedir}/libdrm
+EOF
+
+echo "✅ Verifying libdrm installation..."
+ls "$SYSROOT/usr/lib/libdrm.a" >/dev/null 2>&1 && echo "✅ libdrm library found" || echo "❌ libdrm library not found"
+ls -d "$SYSROOT/usr/include/libdrm" >/dev/null 2>&1 && echo "✅ libdrm headers found" || echo "❌ libdrm headers not found"
+
+cd ..
+
+cd ..
+
+# 9) Clone specific FFmpeg version
 echo ""
 echo "🎥 =============== CLONING FFMPEG ==============="
 FFMPEG_SRC="ffmpeg"
@@ -366,7 +510,7 @@ else
     echo "✅ FFmpeg already cloned"
 fi
 
-# 8) Prepare build environment
+# 10) Prepare build environment
 echo ""
 echo "🔧 =============== PREPARING BUILD ENVIRONMENT ==============="
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
@@ -387,7 +531,19 @@ else
     echo "⚠️  libsrtp2 not available - will build without SRTP support"
 fi
 
-# 9) Configure and build FFmpeg
+if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists libv4l2 2>/dev/null; then
+    echo "✅ libv4l2 ready for FFmpeg"
+else
+    echo "⚠️  libv4l2 not available - will build without V4L2 support"
+fi
+
+if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists libdrm 2>/dev/null; then
+    echo "✅ libdrm ready for FFmpeg"
+else
+    echo "⚠️  libdrm not available - will build without DRM support"
+fi
+
+# 11) Configure and build FFmpeg
 cd build
 echo ""
 echo "🎥 =============== CONFIGURING FFMPEG ==============="
@@ -471,15 +627,17 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-version3 \
     --enable-openssl \
     --enable-zlib \
+    --enable-libv4l2 --enable-libdrm \
     --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
     --enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
-    --enable-encoder=mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
+    --enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
     --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
     --enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp \
     --enable-bsf=mjpeg2jpeg \
-    --enable-indev=lavfi \
+    --enable-indev=lavfi,v4l2 \
+    --enable-outdev=v4l2 \
     --enable-libx264 \
     $X264_CONFIGURE_FLAGS \
     --extra-cflags="$EXTRA_CFLAGS" \
