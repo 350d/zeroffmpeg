@@ -32,7 +32,7 @@ ls -la >/dev/null 2>&1
 echo "" >/dev/null 2>&1
 echo "📦 =============== SETTING UP PKG-CONFIG ===============" >/dev/null 2>&1
 PKG_CONFIG_DIR="${SYSROOT}/usr/lib/pkgconfig"
-mkdir -p "$PKG_CONFIG_DIR"
+mkdir -p "$PKG_CONFIG_DIR" >/dev/null 2>&1
 
 export PKG_CONFIG_PATH="$PKG_CONFIG_DIR"
 export PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR"
@@ -100,7 +100,7 @@ sudo make install >/dev/null 2>&1
 
 # Create zlib.pc file
 echo "📝 Creating zlib.pc..." >/dev/null 2>&1
-sudo tee "$PKG_CONFIG_DIR/zlib.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/zlib.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -157,12 +157,12 @@ STRIP="${CROSS_COMPILE}strip" \
 
 echo "🔧 Fixing double prefix in Makefile..." >/dev/null 2>&1
 # Fix the CC line that uses $(CROSS_COMPILE)
-sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile
+sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile >/dev/null 2>&1
 # Fix any remaining double prefixes
-sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unknown-linux-gnueabihf-/g" Makefile
+sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unknown-linux-gnueabihf-/g" Makefile >/dev/null 2>&1
 # Also fix AR and RANLIB if they have the same issue
-sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile
-sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile
+sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile >/dev/null 2>&1
+sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile >/dev/null 2>&1
 
 echo "⏳ Compiling OpenSSL..." >/dev/null 2>&1
 make -j"$(nproc)" build_libs >/dev/null 2>&1
@@ -171,7 +171,7 @@ sudo make install_dev >/dev/null 2>&1
 
 # Create OpenSSL pkg-config files
 echo "📝 Creating OpenSSL pkg-config files..." >/dev/null 2>&1
-sudo tee "$PKG_CONFIG_DIR/openssl.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/openssl.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -183,7 +183,7 @@ Version: 1.1.1
 Requires: libssl libcrypto
 EOF
 
-sudo tee "$PKG_CONFIG_DIR/libssl.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/libssl.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -197,7 +197,7 @@ Libs: -L\${libdir} -lssl
 Cflags: -I\${includedir}
 EOF
 
-sudo tee "$PKG_CONFIG_DIR/libcrypto.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/libcrypto.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -252,7 +252,7 @@ sudo make install >/dev/null 2>&1
 
 # Create libsrtp2.pc file
 echo "📝 Creating libsrtp2.pc..." >/dev/null 2>&1
-sudo tee "$PKG_CONFIG_DIR/libsrtp2.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/libsrtp2.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -294,12 +294,12 @@ echo "🔧 STRIP=$STRIP" >/dev/null 2>&1
 
 # Ensure directories exist with proper permissions
 echo "📁 Setting up directories..." >/dev/null 2>&1
-sudo mkdir -p "$SYSROOT/usr/lib"
-sudo mkdir -p "$SYSROOT/usr/include"
-sudo mkdir -p "$PKG_CONFIG_DIR"
-sudo chmod -R 755 "$SYSROOT/usr/lib"
-sudo chmod -R 755 "$SYSROOT/usr/include"
-sudo chmod -R 755 "$PKG_CONFIG_DIR"
+sudo mkdir -p "$SYSROOT/usr/lib" >/dev/null 2>&1
+sudo mkdir -p "$SYSROOT/usr/include" >/dev/null 2>&1
+sudo mkdir -p "$PKG_CONFIG_DIR" >/dev/null 2>&1
+sudo chmod -R 755 "$SYSROOT/usr/lib" >/dev/null 2>&1
+sudo chmod -R 755 "$SYSROOT/usr/include" >/dev/null 2>&1
+sudo chmod -R 755 "$PKG_CONFIG_DIR" >/dev/null 2>&1
 
 # Configure x264 with proper paths and flags
 echo "⏳ Configuring x264..." >/dev/null 2>&1
@@ -326,7 +326,7 @@ sudo make install >/dev/null 2>&1
 
 # Create x264.pc with absolute paths
 echo "📝 Creating x264.pc..." >/dev/null 2>&1
-sudo tee "$PKG_CONFIG_DIR/x264.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/x264.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -400,7 +400,7 @@ sudo make install >/dev/null 2>&1
 
 # Create libv4l2.pc file
 echo "📝 Creating libv4l2.pc..." >/dev/null 2>&1
-sudo tee "$PKG_CONFIG_DIR/libv4l2.pc" << EOF >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/libv4l2.pc" >/dev/null 2>&1 << EOF
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -435,7 +435,7 @@ echo "" >/dev/null 2>&1
 echo "🔧 =============== PREPARING BUILD ENVIRONMENT ===============" >/dev/null 2>&1
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
-mkdir -p build
+mkdir -p build >/dev/null 2>&1
 
 # Prepare for FFmpeg build
 echo "🔧 Checking dependencies for FFmpeg..." >/dev/null 2>&1
@@ -542,8 +542,10 @@ echo "" >/dev/null 2>&1
 echo "🎯 =============== BUILD COMPLETE! ===============" >/dev/null 2>&1
 if [ -f "$PREFIX/bin/ffmpeg" ]; then
     echo "✅ FFmpeg binary built successfully!" >/dev/null 2>&1
-    echo "📊 Binary size: $(ls -lh $PREFIX/bin/ffmpeg | awk '{print $5}')" >/dev/null 2>&1
-    echo "🏗️  Architecture: $(file $PREFIX/bin/ffmpeg | grep -o 'ARM.*')" >/dev/null 2>&1
+    BINARY_SIZE=$(ls -lh "$PREFIX/bin/ffmpeg" 2>/dev/null | awk '{print $5}')
+    BINARY_ARCH=$(file "$PREFIX/bin/ffmpeg" 2>/dev/null | grep -o 'ARM.*')
+    echo "📊 Binary size: $BINARY_SIZE" >/dev/null 2>&1
+    echo "🏗️  Architecture: $BINARY_ARCH" >/dev/null 2>&1
     echo "🔗 Linking: Static (no external dependencies)" >/dev/null 2>&1
 else
     echo "❌ FFmpeg binary not found!" >/dev/null 2>&1
