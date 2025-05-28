@@ -486,7 +486,7 @@ if [ $X264_AVAILABLE -eq 1 ]; then
 fi
 
 # Configure and build FFmpeg
-echo "⏳ Configuring FFmpeg..."
+echo "⏳ Configuring FFmpeg with V4L2 hardware acceleration..."
 
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
@@ -509,7 +509,6 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-version3 \
     --enable-openssl \
     --enable-zlib \
-    --enable-libv4l2 \
     --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
     --enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le \
@@ -520,7 +519,6 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-bsf=mjpeg2jpeg \
     --enable-indev=lavfi,v4l2 \
     --enable-outdev=v4l2 \
-    --enable-libx264 \
     $X264_CONFIGURE_FLAGS \
     --extra-cflags="$EXTRA_CFLAGS" \
     --extra-ldflags="$EXTRA_LDFLAGS -lssl -lcrypto" \
@@ -559,5 +557,5 @@ echo "🎉 ==============================================="
 echo "🎥 FFmpeg location: $PREFIX/bin/ffmpeg"
 echo "🔍 FFprobe location: $PREFIX/bin/ffprobe"
 echo "🎯 Target: ARMv6 (Raspberry Pi Zero compatible)"
-echo "🔐 Features: OpenSSL, zlib, x264, V4L2 cameras"
+echo "🔐 Features: OpenSSL, zlib, x264, V4L2 cameras, h264_v4l2m2m"
 echo "🎉 ===============================================" 

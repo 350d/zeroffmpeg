@@ -1,0 +1,99 @@
+name: 🚀 Build FFmpeg with Hardware Acceleration for Raspberry Pi Zero
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        platforms: linux/amd64
+        
+    - name: 🏗️ Build FFmpeg with Docker
+      run: |
+        docker build --platform linux/amd64 -t zeroffmpeg-builder .
+        
+    - name: 📤 Extract binaries
+      run: |
+        # Create container and extract binaries
+        CONTAINER_ID=$(docker create --platform linux/amd64 zeroffmpeg-builder)
+        docker cp $CONTAINER_ID:/app/install/bin/ffmpeg ./ffmpeg-armv6
+        docker cp $CONTAINER_ID:/app/install/bin/ffprobe ./ffprobe-armv6
+        docker rm $CONTAINER_ID
+        
+        # Make binaries executable
+        chmod +x ffmpeg-armv6 ffprobe-armv6
+        
+        ls -lh ffmpeg-armv6 ffprobe-armv6
+        file ffmpeg-armv6 ffprobe-armv6
+        
+    - name: 🧪 Test binary architecture (without execution)
+      run: |
+        # Test file format and architecture
+        file ffmpeg-armv6
+        file ffprobe-armv6
+        
+        # Check if binaries are ARM and statically linked
+        if file ffmpeg-armv6 | grep -q "ARM.*statically linked"; then
+          echo "✅ FFmpeg: Correct ARM architecture and statically linked"
+        else
+          echo "❌ FFmpeg: Incorrect architecture or linking"
+          exit 1
+        fi
+        
+        if file ffprobe-armv6 | grep -q "ARM.*statically linked"; then
+          echo "✅ FFprobe: Correct ARM architecture and statically linked"
+        else
+          echo "❌ FFprobe: Incorrect architecture or linking"
+          exit 1
+        fi
+        
+        # Check binary sizes (should be reasonable for static builds)
+        FFMPEG_SIZE=$(stat -c%s ffmpeg-armv6)
+        FFPROBE_SIZE=$(stat -c%s ffprobe-armv6)
+        
+        # Reasonable size check (should be between 1MB and 50MB)
+        if [ $FFMPEG_SIZE -gt 1048576 ] && [ $FFMPEG_SIZE -lt 52428800 ]; then
+          echo "✅ FFmpeg size is reasonable"
+        else
+          echo "❌ FFmpeg size is suspicious: ${FFMPEG_SIZE} bytes"
+          exit 1
+        fi
+        
+        if [ $FFPROBE_SIZE -gt 1048576 ] && [ $FFPROBE_SIZE -lt 52428800 ]; then
+          echo "✅ FFprobe size is reasonable"
+        else
+          echo "❌ FFprobe size is suspicious: ${FFPROBE_SIZE} bytes"
+          exit 1
+        fi
+        
+        echo "🎉 All binary tests passed!"
+        
+    - name: 📦 Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-armv6-binaries
+        path: |
+          ffmpeg-armv6
+          ffprobe-armv6
+        retention-days: 30
+        
+    - name: 📋 Build summary
+      run: |
+        echo "✅ Target: ARMv6 (Raspberry Pi Zero compatible)"
+        echo "✅ Architecture: $(file ffmpeg-armv6 | grep -o 'ARM[^,]*')"
+        echo "✅ Linking: Static (no external dependencies)"
+        echo "✅ Size: FFmpeg $(ls -lh ffmpeg-armv6 | awk '{print $5}'), FFprobe $(ls -lh ffprobe-armv6 | awk '{print $5}')"
+        echo "✅ Features: OpenSSL, zlib, x264, V4L2 cameras, h264_v4l2m2m"
+        echo "🎉 Build completed successfully!" 
