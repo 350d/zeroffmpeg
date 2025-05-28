@@ -392,7 +392,7 @@ run_silent ../$FFMPEG_SRC/configure \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
     --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
     --enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp \
-    --enable-bsf=mjpeg2jpeg \
+    --enable-bsf=mjpeg2jpeg,h264_mp4toannexb,h264_metadata,null,extract_extradata,h264_metadata \
     --enable-indev=lavfi,v4l2 \
     --enable-outdev=v4l2 \
     $X264_CONFIGURE_FLAGS \
