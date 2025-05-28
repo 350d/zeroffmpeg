@@ -261,8 +261,8 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
 	export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
 	export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" && \
-	LIBV4L2_FLAG="" && \
-	pkg-config --exists libv4l2 && LIBV4L2_FLAG="--enable-libv4l2" || echo "⚠️  Building without libv4l2" && \
+	# V4L2 support works through kernel interface, no need for libv4l2 flag
+	echo "⚠️  V4L2 support enabled through kernel interface" && \
 	PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" \
 	PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" \
 	PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" \
@@ -284,7 +284,6 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-openssl \
 		--enable-zlib \
 		--enable-libx264 \
-		$LIBV4L2_FLAG \
 		--enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
 		--enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
 		--enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le \
