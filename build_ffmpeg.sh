@@ -385,7 +385,7 @@ run_silent ../$FFMPEG_SRC/configure \
     --enable-version3 \
     --enable-openssl \
     --enable-zlib \
-    --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
+    --enable-filter=testsrc,showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
     --enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le \
     --enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
