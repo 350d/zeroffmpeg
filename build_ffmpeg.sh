@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-echo "🚀 ==============================================="
-echo "🎬 FFmpeg Static Build for Raspberry Pi Zero 🥧"
-echo "🚀 ==============================================="
+echo "🚀 ===============================================" >/dev/null 2>&1
+echo "🎬 FFmpeg Static Build for Raspberry Pi Zero 🥧" >/dev/null 2>&1
+echo "🚀 ===============================================" >/dev/null 2>&1
 
 # Setup cross-compilation environment
 export CROSS_COMPILE=${CROSS_COMPILE:-"armv6-unknown-linux-gnueabihf-"}
@@ -12,25 +12,25 @@ export PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/bin:$PATH"
 
 # Verify cross-compiler is available
 if ! command -v "${CROSS_COMPILE}gcc" >/dev/null 2>&1; then
-    echo "❌ Error: Cross compiler ${CROSS_COMPILE}gcc not found in PATH"
+    echo "❌ Error: Cross compiler ${CROSS_COMPILE}gcc not found in PATH" >/dev/null 2>&1
     exit 1
 fi
 
 # 1) Debug: environment info
-echo ""
-echo "🔍 =============== ENVIRONMENT INFO ==============="
-env | sort
-echo ""
-echo "🔧 =============== GCC VERSION ==============="
-${CROSS_COMPILE}gcc --version
-echo ""
-echo "📁 =============== WORKING DIRECTORY ==============="
-pwd
-ls -la
+echo "" >/dev/null 2>&1
+echo "🔍 =============== ENVIRONMENT INFO ===============" >/dev/null 2>&1
+env | sort >/dev/null 2>&1
+echo "" >/dev/null 2>&1
+echo "🔧 =============== GCC VERSION ===============" >/dev/null 2>&1
+${CROSS_COMPILE}gcc --version >/dev/null 2>&1
+echo "" >/dev/null 2>&1
+echo "📁 =============== WORKING DIRECTORY ===============" >/dev/null 2>&1
+pwd >/dev/null 2>&1
+ls -la >/dev/null 2>&1
 
 # 2) Setup pkg-config for cross-compilation
-echo ""
-echo "📦 =============== SETTING UP PKG-CONFIG ==============="
+echo "" >/dev/null 2>&1
+echo "📦 =============== SETTING UP PKG-CONFIG ===============" >/dev/null 2>&1
 PKG_CONFIG_DIR="${SYSROOT}/usr/lib/pkgconfig"
 mkdir -p "$PKG_CONFIG_DIR"
 
@@ -41,13 +41,13 @@ export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
 # Create a cross-compile aware pkg-config wrapper
 PKG_CONFIG_CROSS="${CROSS_COMPILE}pkg-config"
 if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
-    echo "⚠️  Cross-compile pkg-config not found, using system pkg-config"
+    echo "⚠️  Cross-compile pkg-config not found, using system pkg-config" >/dev/null 2>&1
     PKG_CONFIG_CROSS="pkg-config"
 fi
 
 # Ensure pkg-config is available
 if ! command -v "$PKG_CONFIG_CROSS" >/dev/null 2>&1; then
-    echo "⚠️  Warning: pkg-config not available, will build without libx264"
+    echo "⚠️  Warning: pkg-config not available, will build without libx264" >/dev/null 2>&1
     export PKG_CONFIG="false"
 else
     export PKG_CONFIG="$PKG_CONFIG_CROSS"
@@ -58,18 +58,18 @@ export LIBRARY_PATH="$SYSROOT/usr/lib:$SYSROOT/lib"
 export C_INCLUDE_PATH="$SYSROOT/usr/include"
 export CPLUS_INCLUDE_PATH="$SYSROOT/usr/include"
 
-echo "📦 PKG_CONFIG=$PKG_CONFIG"
-echo "📦 PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-echo "📦 PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR"
-echo "📦 PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR"
-echo "📦 LIBRARY_PATH=$LIBRARY_PATH"
+echo "📦 PKG_CONFIG=$PKG_CONFIG" >/dev/null 2>&1
+echo "📦 PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >/dev/null 2>&1
+echo "📦 PKG_CONFIG_LIBDIR=$PKG_CONFIG_LIBDIR" >/dev/null 2>&1
+echo "📦 PKG_CONFIG_SYSROOT_DIR=$PKG_CONFIG_SYSROOT_DIR" >/dev/null 2>&1
+echo "📦 LIBRARY_PATH=$LIBRARY_PATH" >/dev/null 2>&1
 
 # 3) Build zlib
-echo ""
-echo "🗜️  =============== BUILDING ZLIB ==============="
+echo "" >/dev/null 2>&1
+echo "🗜️  =============== BUILDING ZLIB ===============" >/dev/null 2>&1
 if [ ! -d "zlib" ]; then
-    echo "📥 Cloning zlib repository..."
-    git clone --depth 1 https://github.com/madler/zlib.git
+    echo "📥 Cloning zlib repository..." >/dev/null 2>&1
+    git clone --depth 1 https://github.com/madler/zlib.git >/dev/null 2>&1
 fi
 cd zlib
 
@@ -79,13 +79,13 @@ export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
 
-echo "🔧 Building zlib with:"
-echo "🔧 CC=$CC"
-echo "🔧 AR=$AR"
-echo "🔧 RANLIB=$RANLIB"
+echo "🔧 Building zlib with:" >/dev/null 2>&1
+echo "🔧 CC=$CC" >/dev/null 2>&1
+echo "🔧 AR=$AR" >/dev/null 2>&1
+echo "🔧 RANLIB=$RANLIB" >/dev/null 2>&1
 
 # Configure and build zlib
-echo "⏳ Configuring zlib..."
+echo "⏳ Configuring zlib..." >/dev/null 2>&1
 CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 ./configure \
     --prefix="$SYSROOT/usr" \
@@ -93,14 +93,14 @@ CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
     --includedir="$SYSROOT/usr/include" \
     --static >/dev/null 2>&1
 
-echo "⏳ Compiling zlib..."
+echo "⏳ Compiling zlib..." >/dev/null 2>&1
 make -j"$(nproc)" >/dev/null 2>&1
-echo "📦 Installing zlib..."
+echo "📦 Installing zlib..." >/dev/null 2>&1
 sudo make install >/dev/null 2>&1
 
 # Create zlib.pc file
-echo "📝 Creating zlib.pc..."
-sudo tee "$PKG_CONFIG_DIR/zlib.pc" << EOF
+echo "📝 Creating zlib.pc..." >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/zlib.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -113,18 +113,18 @@ Libs: -L\${libdir} -lz
 Cflags: -I\${includedir}
 EOF
 
-echo "✅ Verifying zlib installation..."
-ls "$SYSROOT/usr/lib/libz.a" >/dev/null 2>&1 && echo "✅ zlib library found" || echo "❌ zlib library not found"
-ls "$SYSROOT/usr/include/zlib.h" >/dev/null 2>&1 && echo "✅ zlib headers found" || echo "❌ zlib headers not found"
+echo "✅ Verifying zlib installation..." >/dev/null 2>&1
+ls "$SYSROOT/usr/lib/libz.a" >/dev/null 2>&1 && echo "✅ zlib library found" >/dev/null 2>&1 || echo "❌ zlib library not found" >/dev/null 2>&1
+ls "$SYSROOT/usr/include/zlib.h" >/dev/null 2>&1 && echo "✅ zlib headers found" >/dev/null 2>&1 || echo "❌ zlib headers not found" >/dev/null 2>&1
 
 cd ..
 
 # 4) Build OpenSSL
-echo ""
-echo "🔐 =============== BUILDING OPENSSL ==============="
+echo "" >/dev/null 2>&1
+echo "🔐 =============== BUILDING OPENSSL ===============" >/dev/null 2>&1
 if [ ! -d "openssl" ]; then
-    echo "📥 Cloning OpenSSL repository..."
-    git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git
+    echo "📥 Cloning OpenSSL repository..." >/dev/null 2>&1
+    git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git >/dev/null 2>&1
 fi
 cd openssl
 
@@ -132,10 +132,10 @@ cd openssl
 make clean >/dev/null 2>&1 || true
 
 # Set up cross-compilation with a different approach
-echo "🔧 Building OpenSSL with cross-compilation for ARM"
+echo "🔧 Building OpenSSL with cross-compilation for ARM" >/dev/null 2>&1
 
 # Configure OpenSSL for ARM using linux-generic32 platform
-echo "⏳ Configuring OpenSSL..."
+echo "⏳ Configuring OpenSSL..." >/dev/null 2>&1
 CC="${CROSS_COMPILE}gcc" \
 AR="${CROSS_COMPILE}ar" \
 RANLIB="${CROSS_COMPILE}ranlib" \
@@ -155,7 +155,7 @@ STRIP="${CROSS_COMPILE}strip" \
     -mfloat-abi=hard \
     -Os >/dev/null 2>&1
 
-echo "🔧 Fixing double prefix in Makefile..."
+echo "🔧 Fixing double prefix in Makefile..." >/dev/null 2>&1
 # Fix the CC line that uses $(CROSS_COMPILE)
 sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile
 # Fix any remaining double prefixes
@@ -164,14 +164,14 @@ sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unk
 sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile
 sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile
 
-echo "⏳ Compiling OpenSSL..."
+echo "⏳ Compiling OpenSSL..." >/dev/null 2>&1
 make -j"$(nproc)" build_libs >/dev/null 2>&1
-echo "📦 Installing OpenSSL..."
+echo "📦 Installing OpenSSL..." >/dev/null 2>&1
 sudo make install_dev >/dev/null 2>&1
 
 # Create OpenSSL pkg-config files
-echo "📝 Creating OpenSSL pkg-config files..."
-sudo tee "$PKG_CONFIG_DIR/openssl.pc" << EOF
+echo "📝 Creating OpenSSL pkg-config files..." >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/openssl.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -183,7 +183,7 @@ Version: 1.1.1
 Requires: libssl libcrypto
 EOF
 
-sudo tee "$PKG_CONFIG_DIR/libssl.pc" << EOF
+sudo tee "$PKG_CONFIG_DIR/libssl.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -197,7 +197,7 @@ Libs: -L\${libdir} -lssl
 Cflags: -I\${includedir}
 EOF
 
-sudo tee "$PKG_CONFIG_DIR/libcrypto.pc" << EOF
+sudo tee "$PKG_CONFIG_DIR/libcrypto.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -211,19 +211,19 @@ Libs.private: -ldl -pthread
 Cflags: -I\${includedir}
 EOF
 
-echo "✅ Verifying OpenSSL installation..."
-ls "$SYSROOT/usr/lib/libssl.a" >/dev/null 2>&1 && echo "✅ libssl found" || echo "❌ libssl not found"
-ls "$SYSROOT/usr/lib/libcrypto.a" >/dev/null 2>&1 && echo "✅ libcrypto found" || echo "❌ libcrypto not found"
-ls -d "$SYSROOT/usr/include/openssl" >/dev/null 2>&1 && echo "✅ OpenSSL headers found" || echo "❌ OpenSSL headers not found"
+echo "✅ Verifying OpenSSL installation..." >/dev/null 2>&1
+ls "$SYSROOT/usr/lib/libssl.a" >/dev/null 2>&1 && echo "✅ libssl found" >/dev/null 2>&1 || echo "❌ libssl not found" >/dev/null 2>&1
+ls "$SYSROOT/usr/lib/libcrypto.a" >/dev/null 2>&1 && echo "✅ libcrypto found" >/dev/null 2>&1 || echo "❌ libcrypto not found" >/dev/null 2>&1
+ls -d "$SYSROOT/usr/include/openssl" >/dev/null 2>&1 && echo "✅ OpenSSL headers found" >/dev/null 2>&1 || echo "❌ OpenSSL headers not found" >/dev/null 2>&1
 
 cd ..
 
 # 5) Build libsrtp2
-echo ""
-echo "🔒 =============== BUILDING LIBSRTP2 ==============="
+echo "" >/dev/null 2>&1
+echo "🔒 =============== BUILDING LIBSRTP2 ===============" >/dev/null 2>&1
 if [ ! -d "libsrtp" ]; then
-    echo "📥 Cloning libsrtp repository..."
-    git clone --depth 1 --branch v2.5.0 https://github.com/cisco/libsrtp.git
+    echo "📥 Cloning libsrtp repository..." >/dev/null 2>&1
+    git clone --depth 1 --branch v2.5.0 https://github.com/cisco/libsrtp.git >/dev/null 2>&1
 fi
 cd libsrtp
 
@@ -233,26 +233,26 @@ export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
 
-echo "🔧 Building libsrtp2 with:"
-echo "🔧 CC=$CC"
-echo "🔧 AR=$AR"
-echo "🔧 RANLIB=$RANLIB"
+echo "🔧 Building libsrtp2 with:" >/dev/null 2>&1
+echo "🔧 CC=$CC" >/dev/null 2>&1
+echo "🔧 AR=$AR" >/dev/null 2>&1
+echo "🔧 RANLIB=$RANLIB" >/dev/null 2>&1
 
 # Configure and build libsrtp2
-echo "⏳ Configuring libsrtp2..."
+echo "⏳ Configuring libsrtp2..." >/dev/null 2>&1
 CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 ./configure \
     --host=arm-linux-gnueabihf \
     --prefix="$SYSROOT/usr" >/dev/null 2>&1
 
-echo "⏳ Compiling libsrtp2..."
+echo "⏳ Compiling libsrtp2..." >/dev/null 2>&1
 make -j"$(nproc)" >/dev/null 2>&1
-echo "📦 Installing libsrtp2..."
+echo "📦 Installing libsrtp2..." >/dev/null 2>&1
 sudo make install >/dev/null 2>&1
 
 # Create libsrtp2.pc file
-echo "📝 Creating libsrtp2.pc..."
-sudo tee "$PKG_CONFIG_DIR/libsrtp2.pc" << EOF
+echo "📝 Creating libsrtp2.pc..." >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/libsrtp2.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -265,18 +265,18 @@ Libs: -L\${libdir} -lsrtp2
 Cflags: -I\${includedir}
 EOF
 
-echo "✅ Verifying libsrtp2 installation..."
-ls "$SYSROOT/usr/lib/libsrtp2.a" >/dev/null 2>&1 && echo "✅ libsrtp2 library found" || echo "❌ libsrtp2 library not found"
-ls "$SYSROOT/usr/include/srtp2" >/dev/null 2>&1 && echo "✅ libsrtp2 headers found" || echo "❌ libsrtp2 headers not found"
+echo "✅ Verifying libsrtp2 installation..." >/dev/null 2>&1
+ls "$SYSROOT/usr/lib/libsrtp2.a" >/dev/null 2>&1 && echo "✅ libsrtp2 library found" >/dev/null 2>&1 || echo "❌ libsrtp2 library not found" >/dev/null 2>&1
+ls "$SYSROOT/usr/include/srtp2" >/dev/null 2>&1 && echo "✅ libsrtp2 headers found" >/dev/null 2>&1 || echo "❌ libsrtp2 headers not found" >/dev/null 2>&1
 
 cd ..
 
 # 6) Build x264
-echo ""
-echo "🎬 =============== BUILDING X264 ==============="
+echo "" >/dev/null 2>&1
+echo "🎬 =============== BUILDING X264 ===============" >/dev/null 2>&1
 if [ ! -d "x264" ]; then
-    echo "📥 Cloning x264 repository..."
-    git clone --depth 1 https://code.videolan.org/videolan/x264.git
+    echo "📥 Cloning x264 repository..." >/dev/null 2>&1
+    git clone --depth 1 https://code.videolan.org/videolan/x264.git >/dev/null 2>&1
 fi
 cd x264
 
@@ -286,14 +286,14 @@ export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
 
-echo "🔧 Exported compiler variables:"
-echo "🔧 CC=$CC"
-echo "🔧 AR=$AR"
-echo "🔧 RANLIB=$RANLIB"
-echo "🔧 STRIP=$STRIP"
+echo "🔧 Exported compiler variables:" >/dev/null 2>&1
+echo "🔧 CC=$CC" >/dev/null 2>&1
+echo "🔧 AR=$AR" >/dev/null 2>&1
+echo "🔧 RANLIB=$RANLIB" >/dev/null 2>&1
+echo "🔧 STRIP=$STRIP" >/dev/null 2>&1
 
 # Ensure directories exist with proper permissions
-echo "📁 Setting up directories..."
+echo "📁 Setting up directories..." >/dev/null 2>&1
 sudo mkdir -p "$SYSROOT/usr/lib"
 sudo mkdir -p "$SYSROOT/usr/include"
 sudo mkdir -p "$PKG_CONFIG_DIR"
@@ -302,7 +302,7 @@ sudo chmod -R 755 "$SYSROOT/usr/include"
 sudo chmod -R 755 "$PKG_CONFIG_DIR"
 
 # Configure x264 with proper paths and flags
-echo "⏳ Configuring x264..."
+echo "⏳ Configuring x264..." >/dev/null 2>&1
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
 PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
@@ -319,14 +319,14 @@ PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
     --libdir="$SYSROOT/usr/lib" \
     --includedir="$SYSROOT/usr/include" >/dev/null 2>&1
 
-echo "⏳ Compiling x264..."
+echo "⏳ Compiling x264..." >/dev/null 2>&1
 make -j"$(nproc)" >/dev/null 2>&1
-echo "📦 Installing x264..."
+echo "📦 Installing x264..." >/dev/null 2>&1
 sudo make install >/dev/null 2>&1
 
 # Create x264.pc with absolute paths
-echo "📝 Creating x264.pc..."
-sudo tee "$PKG_CONFIG_DIR/x264.pc" << EOF
+echo "📝 Creating x264.pc..." >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/x264.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -341,24 +341,24 @@ Libs.private: -lpthread -lm
 Cflags: -I\${includedir}
 EOF
 
-echo "✅ Verifying x264 installation..."
-ls "$SYSROOT/usr/lib/libx264.a" >/dev/null 2>&1 && echo "✅ x264 library found" || echo "❌ x264 library not found"
-ls "$SYSROOT/usr/include/x264.h" >/dev/null 2>&1 && echo "✅ x264 headers found" || echo "❌ x264 headers not found"
+echo "✅ Verifying x264 installation..." >/dev/null 2>&1
+ls "$SYSROOT/usr/lib/libx264.a" >/dev/null 2>&1 && echo "✅ x264 library found" >/dev/null 2>&1 || echo "❌ x264 library not found" >/dev/null 2>&1
+ls "$SYSROOT/usr/include/x264.h" >/dev/null 2>&1 && echo "✅ x264 headers found" >/dev/null 2>&1 || echo "❌ x264 headers not found" >/dev/null 2>&1
 
 # Test pkg-config with x264
-echo "🧪 Testing pkg-config with x264..."
+echo "🧪 Testing pkg-config with x264..." >/dev/null 2>&1
 if [ "$PKG_CONFIG" != "false" ]; then
-    $PKG_CONFIG --exists x264 2>/dev/null && echo "✅ x264 pkg-config working" || echo "❌ x264 pkg-config failed"
+    $PKG_CONFIG --exists x264 2>/dev/null && echo "✅ x264 pkg-config working" >/dev/null 2>&1 || echo "❌ x264 pkg-config failed" >/dev/null 2>&1
 fi
 
 cd ..
 
 # 7) Build libv4l2 (for V4L2 camera support)
-echo ""
-echo "📹 =============== BUILDING LIBV4L2 ==============="
+echo "" >/dev/null 2>&1
+echo "📹 =============== BUILDING LIBV4L2 ===============" >/dev/null 2>&1
 if [ ! -d "v4l-utils" ]; then
-    echo "📥 Cloning v4l-utils repository..."
-    git clone --depth 1 --branch v4l-utils-1.24.1 https://git.linuxtv.org/v4l-utils.git v4l-utils
+    echo "📥 Cloning v4l-utils repository..." >/dev/null 2>&1
+    git clone --depth 1 --branch v4l-utils-1.24.1 https://git.linuxtv.org/v4l-utils.git v4l-utils >/dev/null 2>&1
 fi
 cd v4l-utils
 
@@ -369,14 +369,14 @@ export AR=${CROSS_COMPILE}ar
 export RANLIB=${CROSS_COMPILE}ranlib
 export STRIP=${CROSS_COMPILE}strip
 
-echo "🔧 Building libv4l2 with:"
-echo "🔧 CC=$CC"
-echo "🔧 CXX=$CXX"
-echo "🔧 AR=$AR"
-echo "🔧 RANLIB=$RANLIB"
+echo "🔧 Building libv4l2 with:" >/dev/null 2>&1
+echo "🔧 CC=$CC" >/dev/null 2>&1
+echo "🔧 CXX=$CXX" >/dev/null 2>&1
+echo "🔧 AR=$AR" >/dev/null 2>&1
+echo "🔧 RANLIB=$RANLIB" >/dev/null 2>&1
 
 # Configure and build libv4l2
-echo "⏳ Configuring libv4l2..."
+echo "⏳ Configuring libv4l2..." >/dev/null 2>&1
 ./bootstrap.sh >/dev/null 2>&1
 CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
 CXXFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os" \
@@ -393,14 +393,14 @@ PKG_CONFIG_SYSROOT_DIR="$SYSROOT" \
     --disable-qvidcap \
     --without-libudev >/dev/null 2>&1
 
-echo "⏳ Compiling libv4l2..."
+echo "⏳ Compiling libv4l2..." >/dev/null 2>&1
 make -j"$(nproc)" >/dev/null 2>&1
-echo "📦 Installing libv4l2..."
+echo "📦 Installing libv4l2..." >/dev/null 2>&1
 sudo make install >/dev/null 2>&1
 
 # Create libv4l2.pc file
-echo "📝 Creating libv4l2.pc..."
-sudo tee "$PKG_CONFIG_DIR/libv4l2.pc" << EOF
+echo "📝 Creating libv4l2.pc..." >/dev/null 2>&1
+sudo tee "$PKG_CONFIG_DIR/libv4l2.pc" << EOF >/dev/null 2>&1
 prefix=$SYSROOT/usr
 exec_prefix=\${prefix}
 libdir=$SYSROOT/usr/lib
@@ -413,65 +413,65 @@ Libs: -L\${libdir} -lv4l2 -lv4lconvert
 Cflags: -I\${includedir}
 EOF
 
-echo "✅ Verifying libv4l2 installation..."
-ls "$SYSROOT/usr/lib/libv4l2.a" >/dev/null 2>&1 && echo "✅ libv4l2 library found" || echo "❌ libv4l2 library not found"
-ls "$SYSROOT/usr/include/libv4l2.h" >/dev/null 2>&1 && echo "✅ libv4l2 headers found" || echo "❌ libv4l2 headers not found"
+echo "✅ Verifying libv4l2 installation..." >/dev/null 2>&1
+ls "$SYSROOT/usr/lib/libv4l2.a" >/dev/null 2>&1 && echo "✅ libv4l2 library found" >/dev/null 2>&1 || echo "❌ libv4l2 library not found" >/dev/null 2>&1
+ls "$SYSROOT/usr/include/libv4l2.h" >/dev/null 2>&1 && echo "✅ libv4l2 headers found" >/dev/null 2>&1 || echo "❌ libv4l2 headers not found" >/dev/null 2>&1
 
 cd ..
 
 # 8) Clone specific FFmpeg version
-echo ""
-echo "🎥 =============== CLONING FFMPEG ==============="
+echo "" >/dev/null 2>&1
+echo "🎥 =============== CLONING FFMPEG ===============" >/dev/null 2>&1
 FFMPEG_SRC="ffmpeg"
 if [ ! -d "$FFMPEG_SRC" ]; then
-    echo "📥 Cloning FFmpeg latest..."
-    git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC"
+    echo "📥 Cloning FFmpeg latest..." >/dev/null 2>&1
+    git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git "$FFMPEG_SRC" >/dev/null 2>&1
 else
-    echo "✅ FFmpeg already cloned"
+    echo "✅ FFmpeg already cloned" >/dev/null 2>&1
 fi
 
 # 9) Prepare build environment
-echo ""
-echo "🔧 =============== PREPARING BUILD ENVIRONMENT ==============="
+echo "" >/dev/null 2>&1
+echo "🔧 =============== PREPARING BUILD ENVIRONMENT ===============" >/dev/null 2>&1
 ARCH_FLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os"
 PREFIX="$(pwd)/install"
 mkdir -p build
 
 # Prepare for FFmpeg build
-echo "🔧 Checking dependencies for FFmpeg..."
+echo "🔧 Checking dependencies for FFmpeg..." >/dev/null 2>&1
 if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists x264 2>/dev/null; then
-    echo "✅ x264 ready for FFmpeg"
+    echo "✅ x264 ready for FFmpeg" >/dev/null 2>&1
 else
-    echo "⚠️  x264 not available - will build without libx264"
+    echo "⚠️  x264 not available - will build without libx264" >/dev/null 2>&1
 fi
 
 if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists libsrtp2 2>/dev/null; then
-    echo "✅ libsrtp2 ready for FFmpeg"
+    echo "✅ libsrtp2 ready for FFmpeg" >/dev/null 2>&1
 else
-    echo "⚠️  libsrtp2 not available - will build without SRTP support"
+    echo "⚠️  libsrtp2 not available - will build without SRTP support" >/dev/null 2>&1
 fi
 
 if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists libv4l2 2>/dev/null; then
-    echo "✅ libv4l2 ready for FFmpeg"
+    echo "✅ libv4l2 ready for FFmpeg" >/dev/null 2>&1
 else
-    echo "⚠️  libv4l2 not available - will build without V4L2 support"
+    echo "⚠️  libv4l2 not available - will build without V4L2 support" >/dev/null 2>&1
 fi
 
 # 10) Configure and build FFmpeg
 cd build
-echo ""
-echo "🎥 =============== CONFIGURING FFMPEG ==============="
+echo "" >/dev/null 2>&1
+echo "🎥 =============== CONFIGURING FFMPEG ===============" >/dev/null 2>&1
 
 # Check if x264 is available via pkg-config
 X264_AVAILABLE=0
 if [ "$PKG_CONFIG" != "false" ] && $PKG_CONFIG --exists x264 2>/dev/null; then
-    echo "✅ Including x264 in FFmpeg build"
+    echo "✅ Including x264 in FFmpeg build" >/dev/null 2>&1
     X264_AVAILABLE=1
     X264_CFLAGS="$($PKG_CONFIG --cflags x264)"
     X264_LIBS="$($PKG_CONFIG --libs x264)"
     X264_CONFIGURE_FLAGS="--enable-libx264 --enable-encoder=libx264"
 else
-    echo "⚠️  Building FFmpeg without x264"
+    echo "⚠️  Building FFmpeg without x264" >/dev/null 2>&1
     X264_CONFIGURE_FLAGS="--disable-libx264"
 fi
 
@@ -486,7 +486,7 @@ if [ $X264_AVAILABLE -eq 1 ]; then
 fi
 
 # Configure and build FFmpeg
-echo "⏳ Configuring FFmpeg with V4L2 hardware acceleration..."
+echo "⏳ Configuring FFmpeg with V4L2 hardware acceleration..." >/dev/null 2>&1
 
 PKG_CONFIG_PATH="$PKG_CONFIG_DIR" \
 PKG_CONFIG_LIBDIR="$PKG_CONFIG_DIR" \
@@ -527,35 +527,35 @@ PKG_CONFIG="$PKG_CONFIG" \
     --sysroot="$SYSROOT" >/dev/null 2>&1
 
 if [ $? -eq 0 ]; then
-    echo "✅ FFmpeg configuration successful"
+    echo "✅ FFmpeg configuration successful" >/dev/null 2>&1
 else
-    echo "❌ FFmpeg configuration failed"
+    echo "❌ FFmpeg configuration failed" >/dev/null 2>&1
     exit 1
 fi
 
-echo "⏳ Building FFmpeg (this may take several minutes)..."
+echo "⏳ Building FFmpeg (this may take several minutes)..." >/dev/null 2>&1
 make -j"$(nproc)" 2>&1 | grep -E "(CC|LD|GEN|INSTALL)" || true
-echo "📦 Installing FFmpeg..."
+echo "📦 Installing FFmpeg..." >/dev/null 2>&1
 make install >/dev/null 2>&1
 
-echo ""
-echo "🎯 =============== BUILD COMPLETE! ==============="
+echo "" >/dev/null 2>&1
+echo "🎯 =============== BUILD COMPLETE! ===============" >/dev/null 2>&1
 if [ -f "$PREFIX/bin/ffmpeg" ]; then
-    echo "✅ FFmpeg binary built successfully!"
-    echo "📊 Binary size: $(ls -lh $PREFIX/bin/ffmpeg | awk '{print $5}')"
-    echo "🏗️  Architecture: $(file $PREFIX/bin/ffmpeg | grep -o 'ARM.*')"
-    echo "🔗 Linking: Static (no external dependencies)"
+    echo "✅ FFmpeg binary built successfully!" >/dev/null 2>&1
+    echo "📊 Binary size: $(ls -lh $PREFIX/bin/ffmpeg | awk '{print $5}')" >/dev/null 2>&1
+    echo "🏗️  Architecture: $(file $PREFIX/bin/ffmpeg | grep -o 'ARM.*')" >/dev/null 2>&1
+    echo "🔗 Linking: Static (no external dependencies)" >/dev/null 2>&1
 else
-    echo "❌ FFmpeg binary not found!"
+    echo "❌ FFmpeg binary not found!" >/dev/null 2>&1
     exit 1
 fi
 
-echo ""
-echo "🎉 ==============================================="
-echo "🎊 FFmpeg Static Build Successfully Completed! 🎊"
-echo "🎉 ==============================================="
-echo "🎥 FFmpeg location: $PREFIX/bin/ffmpeg"
-echo "🔍 FFprobe location: $PREFIX/bin/ffprobe"
-echo "🎯 Target: ARMv6 (Raspberry Pi Zero compatible)"
-echo "🔐 Features: OpenSSL, zlib, x264, V4L2 cameras, h264_v4l2m2m"
-echo "🎉 ===============================================" 
+echo "" >/dev/null 2>&1
+echo "🎉 ===============================================" >/dev/null 2>&1
+echo "🎊 FFmpeg Static Build Successfully Completed! 🎊" >/dev/null 2>&1
+echo "🎉 ===============================================" >/dev/null 2>&1
+echo "🎥 FFmpeg location: $PREFIX/bin/ffmpeg" >/dev/null 2>&1
+echo "🔍 FFprobe location: $PREFIX/bin/ffprobe" >/dev/null 2>&1
+echo "🎯 Target: ARMv6 (Raspberry Pi Zero compatible)" >/dev/null 2>&1
+echo "🔐 Features: OpenSSL, zlib, x264, V4L2 cameras, h264_v4l2m2m" >/dev/null 2>&1
+echo "🎉 ===============================================" >/dev/null 2>&1 
