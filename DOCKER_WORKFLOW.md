@@ -35,9 +35,9 @@ make extract
 | Command | Description | Time | Use Case |
 |---------|-------------|------|----------|
 | `make help` | 📋 Show all available commands | Instant | Learning |
-| `make build-deps` | 📦 Cache dependencies (zlib, OpenSSL, libsrtp2, libv4l2, libdrm, x264) | 25-35 min | First setup |
+| `make build-deps` | 📦 Cache dependencies (zlib, OpenSSL, libsrtp2, libv4l2, x264) | 20-30 min | First setup |
 | `make build-ffmpeg` | ⚡ Fast FFmpeg build using cache | 2-5 min | Development |
-| `make build` | 🏗️ Full build (all stages) | 30-40 min | Clean rebuild |
+| `make build` | 🏗️ Full build (all stages) | 25-35 min | Clean rebuild |
 | `make extract` | 📤 Get binaries from Docker | 10 sec | Get results |
 | `make test` | 🧪 Test built FFmpeg | 5 sec | Verification |
 | `make clean` | 🧹 Clean up images | 30 sec | Cleanup |
@@ -171,21 +171,6 @@ Layer 4: OpenSSL build (Changes: Rarely)    Cache: Months
 Layer 5: x264 build    (Changes: Rarely)    Cache: Months
 Layer 6: libsrtp2 build(Changes: Rarely)    Cache: Months
 Layer 7: libv4l2 build (Changes: Rarely)    Cache: Months
-Layer 8: libdrm build  (Changes: Rarely)    Cache: Months
-Layer 9: FFmpeg clone  (Changes: Sometimes) Cache: Weeks
-Layer 10: FFmpeg build (Changes: Often)     Cache: None
+Layer 8: FFmpeg clone  (Changes: Sometimes) Cache: Weeks
+Layer 9: FFmpeg build (Changes: Often)     Cache: None
 ```
-
-**Result**: 90% of the build is cached most of the time! 🎉
-
-## 💡 Pro Tips
-
-- Keep multiple dependency caches: `docker tag zeroffmpeg-deps:latest zeroffmpeg-deps:$(date +%Y%m%d)`
-- Use `.dockerignore` to minimize build context
-- Monitor cache usage: `docker system df`
-- For ultimate speed: Use local registry to cache layers
-- Test on Pi Zero: `scp output/ffmpeg pi@your-pi:~/` 
-
----
-
-**🎯 Remember**: The first build is slow, but every subsequent build is lightning fast! ⚡ 

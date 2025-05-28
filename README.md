@@ -55,9 +55,8 @@ For applications requiring:
 
 #### 📹 **Hardware Acceleration & Camera Support**
 - **V4L2** - Video4Linux2 camera interface
-- **DRM/KMS** - Direct Rendering Manager for hardware acceleration
 - **h264_v4l2m2m** - Hardware H.264 encoding/decoding on Raspberry Pi
-- **VC4** - VideoCore IV GPU support for Pi Zero
+- **Camera Input/Output** - Direct camera access and streaming
 
 #### 🔐 **Security & Compression**
 - **OpenSSL** - Secure connections
@@ -72,9 +71,8 @@ The build uses **cross-compilation** with GitHub Actions for consistent, reprodu
 2. **🔐 OpenSSL 1.1.1** - Cryptography (with ARM cross-compilation fixes)
 3. **🔒 libsrtp2** - Secure Real-time Transport Protocol
 4. **📹 libv4l2** - Video4Linux2 camera interface library
-5. **🖥️ libdrm** - Direct Rendering Manager for hardware acceleration
-6. **🎬 x264** - H.264 encoder/decoder
-7. **🎥 FFmpeg Latest** - Main application (latest git version)
+5. **🎬 x264** - H.264 encoder/decoder
+6. **🎥 FFmpeg Latest** - Main application (latest git version)
 
 ### 🎯 **Target Platform**
 - **Architecture**: ARMv6 (Raspberry Pi Zero compatible)

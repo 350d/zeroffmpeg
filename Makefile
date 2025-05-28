@@ -84,10 +84,10 @@ info: ## ℹ️  Show build information
 	@echo "ℹ️  ZeroFFmpeg Build Information:"
 	@echo "🎯 Target: ARMv6 (Raspberry Pi Zero)"
 	@echo "🔧 Base image: dockcross/linux-armv6"
-	@echo "📦 Dependencies: zlib, OpenSSL, libsrtp2, libv4l2, libdrm, x264"
+	@echo "📦 Dependencies: zlib, OpenSSL, libsrtp2, libv4l2, x264"
 	@echo "🎬 FFmpeg version: Latest (git)"
 	@echo "🔒 Security: HTTPS support"
-	@echo "📹 Hardware: V4L2 cameras, DRM/KMS acceleration"
+	@echo "📹 Hardware: V4L2 cameras, hardware H.264 encoding"
 	@echo "⚡ Expected startup: ~0.01 seconds"
 	@echo "📊 Expected size: ~8MB (static)"
 

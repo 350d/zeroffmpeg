@@ -23,10 +23,6 @@ echo "📹 Testing V4L2 support..."
 $FFMPEG_BIN -hide_banner -f lavfi -i testsrc=duration=1:size=320x240:rate=1 -f v4l2 -list_formats all /dev/video0 2>/dev/null && echo "✅ V4L2 support detected" || echo "⚠️  V4L2 support not available (normal if no camera)"
 
 echo ""
-echo "🖥️ Testing DRM support..."
-$FFMPEG_BIN -hide_banner -f lavfi -i testsrc=duration=1:size=320x240:rate=1 -f null - 2>&1 | grep -q "drm" && echo "✅ DRM support detected" || echo "⚠️  DRM support not detected"
-
-echo ""
 echo "🚀 Testing H.264 V4L2M2M encoder..."
 $FFMPEG_BIN -hide_banner -encoders 2>/dev/null | grep h264_v4l2m2m && echo "✅ H.264 V4L2M2M encoder available" || echo "⚠️  H.264 V4L2M2M encoder not available"
 
