@@ -28,8 +28,8 @@ jobs:
       run: |
         # Create container and extract binaries
         CONTAINER_ID=$(docker create --platform linux/amd64 zeroffmpeg-builder)
-        docker cp $CONTAINER_ID:/app/install/bin/ffmpeg ./ffmpeg-armv6
-        docker cp $CONTAINER_ID:/app/install/bin/ffprobe ./ffprobe-armv6
+        docker cp $CONTAINER_ID:/tmp/install/bin/ffmpeg ./ffmpeg-armv6
+        docker cp $CONTAINER_ID:/tmp/install/bin/ffprobe ./ffprobe-armv6
         docker rm $CONTAINER_ID
         
         # Make binaries executable
