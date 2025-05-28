@@ -294,7 +294,7 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 		--enable-bsf=mjpeg2jpeg \
 		--enable-indev=lavfi,v4l2 \
 		--enable-outdev=v4l2 \
-		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
+		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -w -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
 		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
 		--pkg-config=pkg-config \
 		--pkg-config-flags="--static" \
@@ -310,13 +310,13 @@ RUN echo "⚙️  Configuring FFmpeg..." && \
 # Build and Install FFmpeg
 RUN echo "⏳ Building FFmpeg..." && \
 	cd build && \
-	make -j$(nproc) 2>&1 | tee build.log || \
+	make -j$(nproc) 2>/dev/null || \
 	(echo "❌ FFmpeg build failed!" && \
 	echo "📋 Last 50 lines of build log:" && \
-	tail -50 build.log && \
+	make -j$(nproc) 2>&1 | tail -50 && \
 	exit 1) && \
 	echo "📦 Installing FFmpeg..." && \
-	make install >/dev/null && \
+	make install 2>/dev/null && \
 	echo "✅ FFmpeg build complete!"
 
 # ============================================================================
@@ -324,8 +324,9 @@ RUN echo "⏳ Building FFmpeg..." && \
 # ============================================================================
 FROM scratch AS output
 
-# 📤 Copy only the final binaries
-COPY --from=ffmpeg-builder /tmp/install/bin/ /
+# 📤 Copy only the final binaries from the correct stage
+COPY --from=ffmpeg-builder /tmp/install/bin/ffmpeg /ffmpeg
+COPY --from=ffmpeg-builder /tmp/install/bin/ffprobe /ffprobe
 
 # 🎯 Default: just show the binary
 CMD ["./ffmpeg", "-version"]
