@@ -512,7 +512,7 @@ PKG_CONFIG="$PKG_CONFIG" \
     --enable-libv4l2 \
     --enable-filter=showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
     --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
-    --enable-decoder=h264_v4l2m2m,h264,mjpeg,aac,mp3float,vorbis,opus,pcm_s16le \
+    --enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le \
     --enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
     --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
     --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
