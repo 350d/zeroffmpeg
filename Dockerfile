@@ -220,8 +220,9 @@ RUN mkdir -p /tmp/install && \
 	# Source configuration and get options using bash
 	bash -c ". /tmp/ffmpeg-configs.sh && get_ffmpeg_config \"$OPTION\" > /tmp/ffmpeg_options.txt" && \
 	echo "Building FFmpeg with $OPTION configuration..." && \
-	# Configure FFmpeg with selected options
-	/tmp/ffmpeg/configure $(cat /tmp/ffmpeg_options.txt) >/dev/null 2>&1
+	echo "Generated options:" && cat /tmp/ffmpeg_options.txt && \
+	# Configure FFmpeg with selected options (show errors for debugging)
+	/tmp/ffmpeg/configure $(cat /tmp/ffmpeg_options.txt)
 
 # Build and Install FFmpeg
 RUN cd build && \
