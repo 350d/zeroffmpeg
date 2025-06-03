@@ -211,7 +211,7 @@ RUN chmod +x /tmp/ffmpeg-configs.sh
 # 🎥 Build FFmpeg directly
 WORKDIR /tmp
 
-# Configure FFmpeg based on OPTION
+# Configure FFmpeg based on OPTION (force cache refresh)
 RUN mkdir -p /tmp/install && \
 	mkdir -p build && cd build && \
 	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
