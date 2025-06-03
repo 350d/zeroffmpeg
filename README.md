@@ -1,327 +1,170 @@
-# 🎬 ZeroFFmpeg - Ultra-Fast Custom FFmpeg for Raspberry Pi Zero 🥧
+# 🎬 ZeroFFmpeg - Optimized FFmpeg for Raspberry Pi Zero
 
-> **Lightning-fast custom FFmpeg build optimized for stream processing, snapshot generation, and motion analysis on Raspberry Pi Zero**
-> 
-> **🔄 Currently using: FFmpeg Latest (git-2025-05-24 or newer)**
+[![Build Status](https://github.com/your-username/zeroffmpeg/actions/workflows/build.yml/badge.svg)](https://github.com/your-username/zeroffmpeg/actions)
 
-## 🚀 The Problem
+Ultra-optimized FFmpeg build for Raspberry Pi Zero (ARMv6) with hardware acceleration support. Features clean Docker-based build system with configurable options.
 
-Standard FFmpeg distributions are bloated with hundreds of codecs, filters, and features that most users never need. When working with Raspberry Pi Zero for real-time applications, this becomes a critical performance bottleneck:
+## 🚀 Features
 
-- **⏰ Standard FFmpeg startup time: ~6 seconds** 
-- **📦 Binary size: 50+ MB with dependencies**
-- **🐌 Slow initialization for simple tasks**
-- **💾 High memory footprint**
+- **ARMv6 Optimized**: Specifically compiled for Raspberry Pi Zero architecture
+- **Hardware Acceleration**: V4L2 M2M support for hardware-accelerated H.264 encoding/decoding
+- **Static Binary**: No external dependencies required
+- **Multi-Configuration**: Choose between minimal, normal, or full builds
+- **Fast Docker Build**: Multi-stage Docker build with optimal caching
+- **GitHub Actions**: Automated builds with configurable options
 
-For applications requiring:
-- 📹 Real-time stream processing
-- 📸 Quick snapshot generation  
-- 🎯 Motion detection and analysis
-- ⚡ Sub-second response times
+## 📦 Available Configurations
 
-...the standard FFmpeg was simply unusable.
+### 🔧 Minimal (~ 3-8 MB)
+- Basic video operations
+- H.264 and MJPEG support
+- V4L2 camera input/output
+- Essential filters (scale, format)
+- Protocols: file, pipe
 
-## ✨ The Solution
+### ⚙️ Normal (~ 15-25 MB) - **Default**
+- Comprehensive multimedia support
+- H.264 hardware acceleration (V4L2 M2M)
+- Streaming protocols (RTSP, HTTP/HTTPS, RTP)
+- Audio codecs (AAC, MP3, Opus, Vorbis)
+- Advanced filters and processing
+- OpenSSL and x264 support
 
-**ZeroFFmpeg** is a minimal, static FFmpeg build that includes only essential components:
+### 🔥 Full (~ 35-50 MB)
+- Complete FFmpeg capabilities
+- All codecs, filters, and protocols
+- Maximum compatibility
+- Post-processing and resampling
+- All input/output devices
 
-- **⚡ Startup time: ~0.01 seconds (600x faster!)**
-- **📦 Binary size: ~8MB (static, no dependencies)**
-- **🎯 Optimized for ARMv6 (Raspberry Pi Zero)**
-- **🔒 Includes only needed codecs and protocols**
+## 🛠️ Building
 
-### 🎯 Included Features
-
-#### 📹 **Video Codecs**
-- **H.264** - Modern video compression (with V4L2 hardware acceleration)
-- **MJPEG** - Fast snapshot generation
-- **Raw Video** - Uncompressed streams
-
-#### 🔊 **Audio Codecs**  
-- **AAC** - High-quality audio
-- **MP3** - Universal compatibility
-- **PCM** - Uncompressed audio
-
-#### 🌐 **Network Protocols**
-- **HTTP/HTTPS** - Web streaming
-- **RTP/RTSP** - Real-time protocols  
-- **TCP/UDP** - Network transport
-
-#### 🔧 **Essential Filters**
-- **Scale** - Resize frames
-- **Format** - Pixel format conversion
-- **Motion detection** - Analysis filters
-- **FPS control** - Frame rate management
-
-#### 📹 **Hardware Acceleration & Camera Support**
-- **V4L2** - Video4Linux2 camera interface
-- **h264_v4l2m2m** - Hardware H.264 encoding/decoding on Raspberry Pi
-- **Camera Input/Output** - Direct camera access and streaming
-
-#### 🔐 **Security & Compression**
-- **OpenSSL** - Secure connections
-- **zlib** - Data compression
-
-## 🏗️ Build Process
-
-The build uses **cross-compilation** with GitHub Actions for consistent, reproducible builds:
-
-### 🛠️ **Dependencies Built from Source**
-1. **🗜️ zlib** - Compression library
-2. **🔐 OpenSSL 1.1.1** - Cryptography (with ARM cross-compilation fixes)
-3. **🔒 libsrtp2** - Secure Real-time Transport Protocol
-4. **📹 libv4l2** - Video4Linux2 camera interface library
-5. **🎬 x264** - H.264 encoder/decoder
-6. **🎥 FFmpeg Latest** - Main application (latest git version)
-
-### 🎯 **Target Platform**
-- **Architecture**: ARMv6 (Raspberry Pi Zero compatible)
-- **Float ABI**: Hard float
-- **Optimization**: Size-optimized (`-Os`)
-- **Linking**: Fully static (no runtime dependencies)
-
-## 🚀 Quick Start
-
-### 1️⃣ Download Pre-built Binary
-
-Go to [Releases](../../releases) and download the latest `🎬-ffmpeg-armv6-static-🥧` artifact.
-
-### 2️⃣ Install on Raspberry Pi Zero
+### Using Docker (Recommended)
 
 ```bash
-# Download and extract
-wget https://github.com/yourusername/zeroffmpeg/releases/latest/download/ffmpeg-armv6-static.tar.gz
-tar -xzf ffmpeg-armv6-static.tar.gz
+# Build with default (normal) configuration
+docker build --build-arg OPTION=normal -t zeroffmpeg .
 
-# Make executable
-chmod +x ffmpeg ffprobe
+# Build minimal version
+docker build --build-arg OPTION=minimal -t zeroffmpeg-minimal .
 
-# Test installation
-./ffmpeg -version
-```
-
-### 3️⃣ Example Usage
-
-```bash
-# 📸 Quick snapshot from webcam
-./ffmpeg -f v4l2 -i /dev/video0 -vframes 1 snapshot.jpg
-
-# 📹 Stream to network (starts in 0.01s!)
-./ffmpeg -f v4l2 -i /dev/video0 -c:v h264 -f rtp rtp://192.168.1.100:5004
-
-# 🎯 Basic motion detection
-./ffmpeg -f v4l2 -i /dev/video0 -vf "showinfo,blackframe=threshold=32" -f null -
-
-# 🚀 Hardware-accelerated H.264 encoding (Pi Zero with GPU)
-./ffmpeg -f v4l2 -i /dev/video0 -c:v h264_v4l2m2m -b:v 1M output.mp4
-
-# 📹 Hardware-accelerated streaming with low latency
-./ffmpeg -f v4l2 -i /dev/video0 -c:v h264_v4l2m2m -preset ultrafast -tune zerolatency -f rtp rtp://192.168.1.100:5004
-
-# 🎬 Convert existing video using hardware acceleration
-./ffmpeg -i input.mp4 -c:v h264_v4l2m2m -b:v 2M -c:a aac output.mp4
-```
-
-## 🎯 Real-World Example: IP Camera with Motion Detection
-
-This is a production example used for **security monitoring** with IP cameras. It demonstrates the **real power** of ZeroFFmpeg - complex video analysis that starts instantly:
-
-```bash
-./ffmpeg -hide_banner -y -loglevel info \
-  -thread_queue_size 1 \
-  -fpsprobesize 0 -analyzeduration 0 -probesize 32 \
-  -fflags +ignidx+nobuffer+discardcorrupt+flush_packets \
-  -skip_frame nokey -max_delay 0 -flags low_delay \
-  -rtsp_transport udp -buffer_size 512k \
-  -hwaccel videotoolbox -r 1 \
-  -i rtsp://127.0.0.1:9999/unicast \
-  -pix_fmt yuv420p -color_range mpeg -strict -1 -an -threads 1 \
-  -filter_complex "[0:v]fps=1,scale=640:-1:flags=fast_bilinear,split=2[snap][diff]; \
-    [diff]tblend=all_mode=difference,blackframe=0.02:32[diffout]" \
-  -map "[snap]" -q:v 4 -update 1 -f image2 snapshot.jpg \
-  -map "[diffout]" -f null - 2>&1 | tee >(awk '
-      BEGIN {
-        cooldownUntil = 0;
-        cooldownSeconds = 8;
-      }
-      /blackframe/ {
-        now = systime();
-        if (now < cooldownUntil) {
-          next;
-        }
-
-        for (i = 1; i <= NF; i++) {
-          if ($i ~ /^pblack:/) {
-            val = substr($i, 8) + 0;
-            if (val < 98) {
-              system("curl -s \"http://localhost:8080/motion?val=" val "\" &");
-              cooldownUntil = now + cooldownSeconds;
-            }
-          }
-        }
-      }')
-```
-
-### 🔍 What This Example Does:
-
-#### 📡 **RTSP Stream Processing**
-- Connects to local H264 stream (served by v4l2rtspserver)via RTSP
-- Optimized for minimal buffering and instant processing
-- Handles 1 FPS for efficient monitoring
-
-#### 📸 **Continuous Snapshots** 
-- Updates `snapshot.jpg` every second with latest frame
-- Uses `-update 1` to overwrite the same file (perfect for web dashboards)
-- Scaled to 640px width for optimal size/quality balance
-
-#### 🎯 **Smart Motion Detection**
-- **Frame Difference**: Uses `tblend=all_mode=difference` to compare consecutive frames
-- **Movement Analysis**: `blackframe=0.02:32` detects changes (less than 98% black pixels = motion)
-- **Smart Cooldown**: 8-second cooldown prevents spam notifications
-
-#### 🚨 **Real-time Alerts**
-- Sends HTTP notification when motion detected: `curl http://localhost:8080/motion?val=X`
-- Integration with home automation systems
-- Background processing with `&` for non-blocking operation
-
-### ⚡ **Performance Benefits**
-
-With **standard FFmpeg**: This complex pipeline would take **~6 seconds to initialize**, making real-time monitoring impossible.
-
-With **ZeroFFmpeg**: **Instant startup (0.01s)** means you can:
-- 🔄 Restart monitoring scripts without delay
-- 🎯 React to events in real-time  
-- 📱 Quick responses for security applications
-- 🔧 Easy integration with IoT systems
-
-**Perfect for**: Security cameras, smart doorbells, motion-triggered recording, and any application requiring instant video analysis!
-
-## 🔧 Building from Source
-
-### Prerequisites
-- GitHub account (for Actions)
-- OR Docker with `dockcross/linux-armv6`
-
-### 🤖 Using GitHub Actions (Recommended)
-
-1. Fork this repository
-2. Go to **Actions** tab
-3. Run **"🎬 Build FFmpeg for Raspberry Pi Zero 🥧"** workflow
-4. Download artifacts from the completed run
-
-### 🐳 Local Build with Optimized Docker (Fast!)
-
-```bash
-# Clone repository
-git clone https://github.com/yourusername/zeroffmpeg.git
-cd zeroffmpeg
-
-# First time setup (caches dependencies)
-make build-deps
-
-# Fast FFmpeg build using cache
-make build-ffmpeg
-make extract
-
-# Find binaries in output/
-ls -la output/
-```
-
-### 🐳 Alternative: Direct Docker Build
-
-```bash
-# Single command build (slower but simpler)
-docker build --target output -t zeroffmpeg .
+# Build full version
+docker build --build-arg OPTION=full -t zeroffmpeg-full .
 
 # Extract binaries
-docker create --name temp-zeroffmpeg zeroffmpeg
-docker cp temp-zeroffmpeg:/ffmpeg ./
-docker cp temp-zeroffmpeg:/ffprobe ./
-docker rm temp-zeroffmpeg
+docker build --build-arg OPTION=normal --target output --output type=local,dest=./output .
 ```
 
-### 🛠️ Legacy Build Method
+### Using GitHub Actions
 
+1. Go to **Actions** tab in your repository
+2. Select **"Build FFmpeg"** workflow
+3. Click **"Run workflow"**
+4. Choose configuration: `minimal`, `normal`, or `full`
+5. Download artifacts from completed build
+
+## 📋 Usage Examples
+
+### Camera Streaming
 ```bash
-# Using dockcross directly (original method)
-docker run --rm -v $(pwd):/work dockcross/linux-armv6 bash -c "
-    cd /work && 
-    chmod +x build_ffmpeg.sh && 
-    ./build_ffmpeg.sh
-"
+# Stream from Pi Camera to RTSP
+./ffmpeg -f v4l2 -i /dev/video0 -c:v h264_v4l2m2m -f rtsp rtsp://localhost:8554/stream
+
+# Capture MJPEG snapshots
+./ffmpeg -f v4l2 -i /dev/video0 -vframes 1 -f image2 snapshot.jpg
 ```
 
-## 📊 Performance Comparison
+### Hardware Acceleration
+```bash
+# Hardware-accelerated H.264 encoding
+./ffmpeg -i input.mp4 -c:v h264_v4l2m2m -preset slow output.mp4
 
-| Metric | Standard FFmpeg | ZeroFFmpeg | Improvement |
-|--------|----------------|------------|-------------|
-| **Startup Time** | ~6.0s | ~0.01s | **600x faster** |
-| **Binary Size** | 50+ MB | ~8MB | **6x smaller** |
-| **Dependencies** | Many | None (static) | **No dependency hell** |
-| **Memory Usage** | High | Minimal | **Lower footprint** |
+# Hardware-accelerated streaming
+./ffmpeg -f v4l2 -i /dev/video0 -c:v h264_v4l2m2m -f rtp rtp://192.168.1.100:5004
+```
 
-## 🎯 Use Cases
+## 🏗️ Architecture
 
-### 📹 **Real-time Stream Processing**
-- IP camera feeds
-- Live video analysis  
-- Stream transcoding
+```
+┌─────────────────────┐
+│   GitHub Actions   │ ← UI for selecting build options
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│ ffmpeg-configs.sh   │ ← Configuration definitions
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│    Dockerfile      │ ← Multi-stage Docker build
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│  Static Binaries   │ ← ARMv6 optimized output
+└─────────────────────┘
+```
 
-### 📸 **Snapshot Generation**  
-- Security cameras
-- Time-lapse photography
-- Motion-triggered captures
+## 🔧 Configuration Details
 
-### 🎮 **Motion Detection**
-- Smart doorbells  
-- Security systems
-- IoT applications
+All configurations are defined in `ffmpeg-configs.sh`:
 
-### 🔄 **Format Conversion**
-- Video format changes
-- Resolution scaling
-- Codec transcoding
+- **Base Configuration**: Common ARM cross-compilation settings
+- **Minimal**: Essential video processing only
+- **Normal**: Balanced feature set for most applications  
+- **Full**: Complete FFmpeg functionality
 
-## 🛠️ Technical Details
+## 🎯 Performance Optimization
 
-### Cross-Compilation Environment
-- **Compiler**: `armv6-unknown-linux-gnueabihf-gcc`
-- **Target**: ARMv6 hard-float EABI
-- **Container**: `dockcross/linux-armv6:latest`
+- **ARMv6 Specific**: Optimized for Pi Zero's CPU architecture
+- **Hardware Acceleration**: V4L2 M2M for GPU-accelerated encoding
+- **Static Linking**: No runtime dependencies
+- **Size Optimization**: `-Os` compiler flags
+- **Multi-Stage Build**: Efficient Docker layer caching
 
-### Build Optimizations
-- **Static linking** - No runtime dependencies
-- **Size optimization** - `-Os` compiler flag  
-- **Feature pruning** - Only essential codecs included
-- **ARM-specific tuning** - Optimized for Pi Zero architecture
+## 📊 Size Comparison
 
-### Security Features
-- **OpenSSL integration** - HTTPS/TLS support
-- **Static builds** - No library injection attacks
-- **Minimal attack surface** - Fewer features = fewer vulnerabilities
+| Configuration | FFmpeg Size | Features |
+|---------------|-------------|----------|
+| Minimal       | ~3-8 MB     | Basic video operations |
+| Normal        | ~15-25 MB   | Full multimedia support |
+| Full          | ~35-50 MB   | Complete FFmpeg |
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **No hardware acceleration**: Ensure V4L2 M2M drivers are loaded
+2. **Permission denied**: Check camera device permissions (`/dev/video*`)
+3. **Out of memory**: Use minimal configuration for very limited systems
+
+### Debug Mode
+```bash
+# Check available encoders
+./ffmpeg -encoders | grep h264
+
+# List V4L2 devices
+./ffmpeg -f v4l2 -list_devices true -i dummy
+
+# Verbose output
+./ffmpeg -loglevel debug -i input.mp4 output.mp4
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Test your changes with the build script
-4. Commit your changes (`git commit -m 'Add amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 🙏 Acknowledgments
 
-- **FFmpeg Team** - For the amazing multimedia framework
-- **DocCross Project** - For excellent cross-compilation containers  
-- **x264 Project** - For efficient H.264 encoding
-- **OpenSSL Team** - For cryptographic libraries
-
----
-
-**💡 Pro Tip**: For even better performance on Pi Zero, consider using a fast SD card (Class 10 or better) and ensure adequate cooling for sustained video processing workloads.
-
-**🎯 Perfect for**: IoT projects, security cameras, edge computing, real-time video processing, and any application where startup speed matters!
+- FFmpeg project for the amazing multimedia framework
+- Dockcross project for ARM cross-compilation toolchain
+- Raspberry Pi Foundation for the Pi Zero platform

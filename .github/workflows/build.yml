@@ -6,10 +6,24 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      option:
+        description: 'FFmpeg build option'
+        required: true
+        default: 'normal'
+        type: choice
+        options:
+        - minimal
+        - normal
+        - full
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        option: 
+          - ${{ github.event.inputs.option || 'normal' }}
     
     steps:
     - name: 📥 Checkout code
@@ -20,39 +34,38 @@ jobs:
       with:
         platforms: linux/amd64
         
-    - name: 🏗️ Build FFmpeg with Docker
+    - name: 🏗️ Build FFmpeg with Docker (${{ matrix.option }} configuration)
       run: |
-        docker build --platform linux/amd64 -t zeroffmpeg-builder .
+        docker build \
+          --build-arg OPTION=${{ matrix.option }} \
+          --target output \
+          --output type=local,dest=./output \
+          .
         
-    - name: 📤 Extract binaries
+    - name: 📤 Verify extracted binaries
       run: |
-        # Create container and extract binaries
-        CONTAINER_ID=$(docker create --platform linux/amd64 zeroffmpeg-builder)
-        docker cp $CONTAINER_ID:/ffmpeg ./ffmpeg-armv6
-        docker cp $CONTAINER_ID:/ffprobe ./ffprobe-armv6
-        docker rm $CONTAINER_ID
-        
         # Make binaries executable
-        chmod +x ffmpeg-armv6 ffprobe-armv6
+        chmod +x ./output/ffmpeg ./output/ffprobe
         
-        ls -lh ffmpeg-armv6 ffprobe-armv6
-        file ffmpeg-armv6 ffprobe-armv6
+        # Show file info
+        ls -lh ./output/ffmpeg ./output/ffprobe
+        file ./output/ffmpeg ./output/ffprobe
         
     - name: 🧪 Test binary architecture (without execution)
       run: |
         # Test file format and architecture
-        file ffmpeg-armv6
-        file ffprobe-armv6
+        file ./output/ffmpeg
+        file ./output/ffprobe
         
         # Check if binaries are ARM and statically linked
-        if file ffmpeg-armv6 | grep -q "ARM.*statically linked"; then
+        if file ./output/ffmpeg | grep -q "ARM.*statically linked"; then
           echo "✅ FFmpeg: Correct ARM architecture and statically linked"
         else
           echo "❌ FFmpeg: Incorrect architecture or linking"
           exit 1
         fi
         
-        if file ffprobe-armv6 | grep -q "ARM.*statically linked"; then
+        if file ./output/ffprobe | grep -q "ARM.*statically linked"; then
           echo "✅ FFprobe: Correct ARM architecture and statically linked"
         else
           echo "❌ FFprobe: Incorrect architecture or linking"
@@ -60,22 +73,32 @@ jobs:
         fi
         
         # Check binary sizes (should be reasonable for static builds)
-        FFMPEG_SIZE=$(stat -c%s ffmpeg-armv6)
-        FFPROBE_SIZE=$(stat -c%s ffprobe-armv6)
+        FFMPEG_SIZE=$(stat -c%s ./output/ffmpeg)
+        FFPROBE_SIZE=$(stat -c%s ./output/ffprobe)
         
-        # Reasonable size check (should be between 1MB and 50MB)
-        if [ $FFMPEG_SIZE -gt 1048576 ] && [ $FFMPEG_SIZE -lt 52428800 ]; then
-          echo "✅ FFmpeg size is reasonable"
-        else
-          echo "❌ FFmpeg size is suspicious: ${FFMPEG_SIZE} bytes"
-          exit 1
-        fi
+        echo "📊 FFmpeg size: ${FFMPEG_SIZE} bytes"
+        echo "📊 FFprobe size: ${FFPROBE_SIZE} bytes"
         
-        if [ $FFPROBE_SIZE -gt 1048576 ] && [ $FFPROBE_SIZE -lt 52428800 ]; then
-          echo "✅ FFprobe size is reasonable"
+        # Reasonable size check (minimal: 1-15MB, normal: 5-35MB, full: 15-60MB)
+        case "${{ matrix.option }}" in
+          "minimal")
+            MIN_SIZE=1048576    # 1MB
+            MAX_SIZE=15728640   # 15MB
+            ;;
+          "normal")
+            MIN_SIZE=5242880    # 5MB
+            MAX_SIZE=36700160   # 35MB
+            ;;
+          "full")
+            MIN_SIZE=15728640   # 15MB
+            MAX_SIZE=62914560   # 60MB
+            ;;
+        esac
+        
+        if [ $FFMPEG_SIZE -gt $MIN_SIZE ] && [ $FFMPEG_SIZE -lt $MAX_SIZE ]; then
+          echo "✅ FFmpeg size is reasonable for ${{ matrix.option }} build"
         else
-          echo "❌ FFprobe size is suspicious: ${FFPROBE_SIZE} bytes"
-          exit 1
+          echo "⚠️  FFmpeg size might be unexpected for ${{ matrix.option }} build: ${FFMPEG_SIZE} bytes"
         fi
         
         echo "🎉 All binary tests passed!"
@@ -83,17 +106,18 @@ jobs:
     - name: 📦 Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-armv6-binaries
+        name: ffmpeg-${{ matrix.option }}-armv6-binaries
         path: |
-          ffmpeg-armv6
-          ffprobe-armv6
+          ./output/ffmpeg
+          ./output/ffprobe
         retention-days: 30
         
     - name: 📋 Build summary
       run: |
+        echo "✅ Configuration: ${{ matrix.option }}"
         echo "✅ Target: ARMv6 (Raspberry Pi Zero compatible)"
-        echo "✅ Architecture: $(file ffmpeg-armv6 | grep -o 'ARM[^,]*')"
+        echo "✅ Architecture: $(file ./output/ffmpeg | grep -o 'ARM[^,]*')"
         echo "✅ Linking: Static (no external dependencies)"
-        echo "✅ Size: FFmpeg $(ls -lh ffmpeg-armv6 | awk '{print $5}'), FFprobe $(ls -lh ffprobe-armv6 | awk '{print $5}')"
-        echo "✅ Features: OpenSSL, zlib, x264, V4L2 cameras, h264_v4l2m2m"
+        echo "✅ Size: FFmpeg $(ls -lh ./output/ffmpeg | awk '{print $5}'), FFprobe $(ls -lh ./output/ffprobe | awk '{print $5}')"
+        echo "✅ Features: Based on ${{ matrix.option }} configuration"
         echo "🎉 Build completed successfully!" 

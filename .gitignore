@@ -3,3 +3,6 @@
 *.icloud
 .DS_Store
 .git
+/tmp
+/test
+.cursor

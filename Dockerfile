@@ -197,55 +197,32 @@ RUN git clone --depth 1 --branch v4l-utils-1.24.1 https://git.linuxtv.org/v4l-ut
 # ============================================================================
 FROM deps-builder AS ffmpeg-builder
 
+# Set build option (default: normal)
+ARG OPTION=normal
+ENV OPTION=${OPTION}
+
 # 📥 Clone FFmpeg (this layer may change more often)  
 RUN git clone --depth 1 https://git.ffmpeg.org/ffmpeg.git /tmp/ffmpeg >/dev/null 2>&1
+
+# 📝 Copy FFmpeg configuration script
+COPY ffmpeg-configs.sh /tmp/ffmpeg-configs.sh
+RUN chmod +x /tmp/ffmpeg-configs.sh
 
 # 🎥 Build FFmpeg directly
 WORKDIR /tmp
 
-# Configure FFmpeg
+# Configure FFmpeg based on OPTION
 RUN mkdir -p /tmp/install && \
 	mkdir -p build && cd build && \
-	# Check which libraries are available
 	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
 	export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
 	export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" && \
-	PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" \
-	PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" \
-	PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" \
-	/tmp/ffmpeg/configure \
-		--prefix="/tmp/install" \
-		--cross-prefix=armv6-unknown-linux-gnueabihf- \
-		--arch=arm \
-		--target-os=linux \
-		--enable-cross-compile \
-		--disable-runtime-cpudetect \
-		--disable-shared \
-		--enable-static \
-		--disable-doc \
-		--disable-debug \
-		--disable-everything \
-		--enable-gpl \
-		--enable-nonfree \
-		--enable-version3 \
-		--enable-openssl \
-		--enable-zlib \
-		--enable-libx264 \
-		--enable-filter=concat,testsrc,showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar \
-		--enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe \
-		--enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le \
-		--enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 \
-		--enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus \
-		--enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp \
-		--enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp \
-		--enable-bsf=mjpeg2jpeg,h264_mp4toannexb,h264_metadata,null,extract_extradata,h264_metadata \
-		--enable-indev=lavfi,v4l2 \
-		--enable-outdev=v4l2 \
-		--extra-cflags="-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -w -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include" \
-		--extra-ldflags="--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib" \
-		--pkg-config=pkg-config \
-		--pkg-config-flags="--static" \
-		--sysroot="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" >/dev/null 2>&1
+	# Source configuration and get options
+	. /tmp/ffmpeg-configs.sh && \
+	FFMPEG_OPTIONS=$(get_ffmpeg_config "$OPTION") && \
+	echo "Building FFmpeg with $OPTION configuration..." && \
+	# Configure FFmpeg with selected options
+	eval "/tmp/ffmpeg/configure $FFMPEG_OPTIONS" >/dev/null 2>&1
 
 # Build and Install FFmpeg
 RUN cd build && \
