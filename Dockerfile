@@ -221,8 +221,8 @@ RUN mkdir -p /tmp/install && \
 	bash -c ". /tmp/ffmpeg-configs.sh && get_ffmpeg_config \"$OPTION\" > /tmp/ffmpeg_options.txt" && \
 	echo "Building FFmpeg with $OPTION configuration..." && \
 	echo "Generated options:" && cat /tmp/ffmpeg_options.txt && \
-	# Configure FFmpeg with selected options (show errors for debugging)
-	/tmp/ffmpeg/configure $(cat /tmp/ffmpeg_options.txt)
+	# Configure FFmpeg using xargs to properly handle quoted arguments
+	cat /tmp/ffmpeg_options.txt | xargs /tmp/ffmpeg/configure
 
 # Build and Install FFmpeg
 RUN cd build && \
