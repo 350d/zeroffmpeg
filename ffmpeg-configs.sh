@@ -6,8 +6,8 @@
 get_ffmpeg_config() {
     local option=${1:-normal}
     
-    # Base configuration for all builds (as single line)
-    local base_config="--prefix=/tmp/install --cross-prefix=armv6-unknown-linux-gnueabihf- --arch=arm --target-os=linux --enable-cross-compile --disable-runtime-cpudetect --disable-shared --enable-static --disable-doc --disable-debug --extra-cflags=-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -w -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include --extra-ldflags=--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib --pkg-config=pkg-config --pkg-config-flags=--static --sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
+    # Base configuration for all builds (as single line with properly quoted cflags/ldflags)
+    local base_config="--prefix=/tmp/install --cross-prefix=armv6-unknown-linux-gnueabihf- --arch=arm --target-os=linux --enable-cross-compile --disable-runtime-cpudetect --disable-shared --enable-static --disable-doc --disable-debug --extra-cflags=\"-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os -w -I/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/include\" --extra-ldflags=\"--sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot -static -L/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib\" --pkg-config=pkg-config --pkg-config-flags=--static --sysroot=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot"
 
     case "$option" in
         "minimal")
