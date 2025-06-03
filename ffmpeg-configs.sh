@@ -94,7 +94,4 @@ get_ffmpeg_config() {
             exit 1
             ;;
     esac
-}
-
-# Export function for use in other scripts
-export -f get_ffmpeg_config 
+} 

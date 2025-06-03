@@ -217,12 +217,11 @@ RUN mkdir -p /tmp/install && \
 	export PKG_CONFIG_PATH="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
 	export PKG_CONFIG_LIBDIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig" && \
 	export PKG_CONFIG_SYSROOT_DIR="/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot" && \
-	# Source configuration and get options
-	. /tmp/ffmpeg-configs.sh && \
-	FFMPEG_OPTIONS=$(get_ffmpeg_config "$OPTION") && \
+	# Source configuration and get options using bash
+	bash -c ". /tmp/ffmpeg-configs.sh && get_ffmpeg_config \"$OPTION\" > /tmp/ffmpeg_options.txt" && \
 	echo "Building FFmpeg with $OPTION configuration..." && \
 	# Configure FFmpeg with selected options
-	eval "/tmp/ffmpeg/configure $FFMPEG_OPTIONS" >/dev/null 2>&1
+	/tmp/ffmpeg/configure $(cat /tmp/ffmpeg_options.txt) >/dev/null 2>&1
 
 # Build and Install FFmpeg
 RUN cd build && \
