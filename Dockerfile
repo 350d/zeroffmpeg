@@ -59,7 +59,7 @@ RUN git clone --depth 1 https://github.com/madler/zlib.git /tmp/zlib >/dev/null 
 	rm -rf /tmp/zlib
 
 # 🔐 Build OpenSSL (cache this, it rarely changes)
-RUN git clone --depth 1 --branch OpenSSL_1_1_1-stable https://github.com/openssl/openssl.git /tmp/openssl >/dev/null 2>&1 && \
+RUN git clone --depth 1 --branch OpenSSL_1_1_1t https://github.com/openssl/openssl.git /tmp/openssl >/dev/null 2>&1 && \
 	cd /tmp/openssl && \
 	CC="armv6-unknown-linux-gnueabihf-gcc" \
 	AR="armv6-unknown-linux-gnueabihf-ar" \

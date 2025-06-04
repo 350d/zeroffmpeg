@@ -19,7 +19,7 @@ get_ffmpeg_config() {
             ;;
             
         "full")
-            echo "$base_config --enable-gpl --enable-nonfree --enable-version3 --enable-openssl --enable-zlib --enable-libx264 --enable-filters --enable-demuxers --enable-decoders --enable-encoders --enable-parsers --enable-protocols --enable-muxers --enable-bsfs --enable-indevs --enable-outdevs --enable-postproc --enable-swscale --enable-swresample --enable-avfilter --enable-avformat --enable-avcodec --enable-avutil"
+            echo "$base_config --enable-gpl --enable-nonfree --enable-version3 --enable-openssl --enable-zlib --enable-libx264 --enable-filters --enable-demuxers --enable-decoders --enable-encoders --enable-parsers --enable-protocols --enable-muxers --enable-bsfs --enable-indevs --enable-outdevs"
             ;;
             
         *)
