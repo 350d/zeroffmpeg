@@ -58,8 +58,9 @@ RUN git clone --depth 1 https://github.com/madler/zlib.git /tmp/zlib >/dev/null 
 	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/zlib.pc && \
 	rm -rf /tmp/zlib
 
-# 🔐 Build OpenSSL (cache this, it rarely changes)
-RUN git clone --depth 1 --branch OpenSSL_1_1_1t https://github.com/openssl/openssl.git /tmp/openssl >/dev/null 2>&1 && \
+# 🔐 Build OpenSSL 3.4.1 (cache this, it rarely changes)
+RUN git clone https://github.com/openssl/openssl.git /tmp/openssl >/dev/null 2>&1 && \
+	cd /tmp/openssl && git checkout openssl-3.4.1 >/dev/null 2>&1 && \
 	cd /tmp/openssl && \
 	CC="armv6-unknown-linux-gnueabihf-gcc" \
 	AR="armv6-unknown-linux-gnueabihf-ar" \
@@ -67,15 +68,15 @@ RUN git clone --depth 1 --branch OpenSSL_1_1_1t https://github.com/openssl/opens
 	./Configure linux-generic32 \
 		--prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr \
 		--openssldir=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/ssl \
-		no-shared no-dso no-engine no-unit-test no-ui-console no-asm -static \
-		-march=armv6 -mfpu=vfp -mfloat-abi=hard -Os >/dev/null 2>&1 && \
-	# Fix double prefix issue
+		no-shared no-dso no-engine no-unit-test no-ui-console no-asm \
+		-static -march=armv6 -mfpu=vfp -mfloat-abi=hard -Os >/dev/null 2>&1 && \
+	# Fix double prefix issue for OpenSSL 3.x
 	sed -i "s/CC=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-gcc/CC=armv6-unknown-linux-gnueabihf-gcc/" Makefile && \
 	sed -i "s/armv6-unknown-linux-gnueabihf-armv6-unknown-linux-gnueabihf-/armv6-unknown-linux-gnueabihf-/g" Makefile && \
 	sed -i "s/AR=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ar/AR=armv6-unknown-linux-gnueabihf-ar/" Makefile && \
 	sed -i "s/RANLIB=\$(CROSS_COMPILE)armv6-unknown-linux-gnueabihf-ranlib/RANLIB=armv6-unknown-linux-gnueabihf-ranlib/" Makefile && \
 	make -j$(nproc) build_libs >/dev/null 2>&1 && make install_dev >/dev/null 2>&1 && \
-	# Create pkg-config files for OpenSSL
+	# Create pkg-config files for OpenSSL 3.4.1
 	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "libdir=\${prefix}/lib" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
@@ -83,9 +84,10 @@ RUN git clone --depth 1 --branch OpenSSL_1_1_1t https://github.com/openssl/opens
 	echo "" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "Name: OpenSSL-libssl" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "Description: Secure Sockets Layer and cryptography libraries" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
-	echo "Version: 1.1.1" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
+	echo "Version: 3.4.1" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "Requires: libcrypto" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "Libs: -L\${libdir} -lssl" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
+	echo "Libs.private: -lcrypto" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libssl.pc && \
 	echo "prefix=/usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr" > /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	echo "exec_prefix=\${prefix}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
@@ -94,7 +96,7 @@ RUN git clone --depth 1 --branch OpenSSL_1_1_1t https://github.com/openssl/opens
 	echo "" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	echo "Name: OpenSSL-libcrypto" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	echo "Description: OpenSSL cryptography library" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
-	echo "Version: 1.1.1" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
+	echo "Version: 3.4.1" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	echo "Libs: -L\${libdir} -lcrypto" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	echo "Libs.private: -ldl -pthread" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
 	echo "Cflags: -I\${includedir}" >> /usr/xcc/armv6-unknown-linux-gnueabihf/armv6-unknown-linux-gnueabihf/sysroot/usr/lib/pkgconfig/libcrypto.pc && \
