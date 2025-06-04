@@ -15,7 +15,7 @@ get_ffmpeg_config() {
             ;;
             
         "normal")
-            echo "$base_config --disable-everything --enable-gpl --enable-nonfree --enable-version3 --enable-openssl --enable-zlib --enable-libx264 --enable-filter=codecview,concat,testsrc,showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe --enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le --enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp --enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp --enable-bsf=mjpeg2jpeg,h264_mp4toannexb,h264_metadata,null,extract_extradata --enable-indev=lavfi,v4l2 --enable-outdev=v4l2"
+            echo "$base_config --disable-everything --enable-gpl --enable-nonfree --enable-version3 --enable-openssl --enable-zlib --enable-libx264 --enable-filter=nullsrc,buffersrc,buffer,codecview,concat,testsrc,showinfo,split,scale,format,colorspace,fps,tblend,blackframe,setsar --enable-demuxer=rtp,rtsp,h264,mjpeg,aac,mp3,flv,ogg,opus,adts,image2,image2pipe --enable-decoder=h264_v4l2m2m,h264,mjpeg,rawvideo,aac,mp3float,vorbis,opus,pcm_s16le --enable-encoder=h264_v4l2m2m,mjpeg,rawvideo,aac,wrapped_avframe,libx264 --enable-parser=h264,mjpeg,aac,mpegaudio,vorbis,opus --enable-protocol=rtsp,pipe,http,https,tls,tcp,udp,file,rtp --enable-muxer=rtsp,mjpeg,mp4,null,image2,rtp --enable-bsf=mjpeg2jpeg,h264_mp4toannexb,h264_metadata,null,extract_extradata --enable-indev=lavfi,v4l2 --enable-outdev=v4l2"
             ;;
             
         "full")
