@@ -227,7 +227,8 @@ RUN mkdir -p /tmp/install && \
 # Build and Install FFmpeg
 RUN cd build && \
 	make -j$(nproc) 2>&1 | grep -E "(CC|LD|GEN|INSTALL)" || true && \
-	make install >/dev/null 2>&1
+	mkdir -p /tmp/install/bin && \
+	make install
 
 # ============================================================================
 # Stage 4: Final Output (Minimal layer)
